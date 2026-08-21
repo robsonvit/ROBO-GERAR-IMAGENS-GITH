@@ -119,15 +119,25 @@ def main():
                 input_locator.click()
                 page.keyboard.press('Control+A')
                 page.keyboard.press('Backspace')
+                
+                # Conta quantas imagens existem ANTES de enviar o prompt
+                old_count = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').count()
+                
                 input_locator.type(prompt, delay=100)
                 time.sleep(random.uniform(1.0, 2.0))
                 input_locator.press('Enter')
-                print("Solicitação enviada. Aguardando geração...")
+                print(f"Solicitação enviada. Imagens antes: {old_count}. Aguardando geração da nova imagem...")
                 
-                time.sleep(random.uniform(3.0, 5.0))
+                # Espera até que o número de imagens na tela aumente
+                page.wait_for_function(f'''() => {{
+                    const imgs = Array.from(document.querySelectorAll('img'));
+                    const currentCount = imgs.filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:')).length;
+                    return currentCount > {old_count};
+                }}''', timeout=90000)
                 
-                # Aguarda especificamente a imagem gerada (filtrando avatares/ícones)
-                # O Google Labs geralmente usa URLs com 'getMediaUrlRedirect' para as criações em 2k
+                print("Nova imagem gerada detectada com sucesso!")
+                time.sleep(2.0) # Pequeno fôlego para a imagem renderizar completamente
+                
                 image_locator = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').last
                 image_locator.wait_for(state='visible', timeout=45000)
                 
