@@ -126,7 +126,9 @@ def main():
                 
                 time.sleep(random.uniform(3.0, 5.0))
                 
-                image_locator = page.locator('img').last
+                # Aguarda especificamente a imagem gerada (filtrando avatares/ícones)
+                # O Google Labs geralmente usa URLs com 'getMediaUrlRedirect' para as criações em 2k
+                image_locator = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').last
                 image_locator.wait_for(state='visible', timeout=45000)
                 
                 img_src = image_locator.get_attribute('src')
