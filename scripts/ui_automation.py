@@ -2,9 +2,31 @@ import os
 import json
 import time
 import random
+import requests
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 from playwright_stealth import stealth_sync
+
+def send_to_telegram(filepath, caption):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    
+    if not bot_token or not chat_id:
+        print("Telegram Token ou Chat ID ausente. Pulando envio.")
+        return
+
+    url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+    try:
+        with open(filepath, 'rb') as f:
+            files = {'photo': f}
+            data = {'chat_id': chat_id, 'caption': caption}
+            response = requests.post(url, files=files, data=data)
+            if response.status_code == 200:
+                print("✅ Imagem enviada com sucesso para o Telegram!")
+            else:
+                print(f"❌ Falha ao enviar imagem: {response.text}")
+    except Exception as e:
+        print(f"Erro ao enviar para o Telegram: {e}")
 
 def main():
     # Carregar sessão de autenticação
@@ -24,17 +46,23 @@ def main():
     output_dir = os.path.join(base_dir, 'output')
     os.makedirs(output_dir, exist_ok=True)
 
-    # Ler prompts
-    prompts_file = os.path.join(base_dir, 'data', 'prompts.txt')
-    try:
-        with open(prompts_file, 'r', encoding='utf-8') as f:
-            prompts = [line.strip() for line in f.readlines() if line.strip()]
-    except FileNotFoundError:
-        print(f"Erro: Arquivo de prompts não encontrado em {prompts_file}")
-        return
+    single_prompt = os.environ.get('SINGLE_PROMPT')
+    
+    if single_prompt and single_prompt.strip():
+        prompts = [single_prompt.strip()]
+        print(f"🤖 Modo Telegram: Executando apenas o prompt enviado -> {prompts[0]}")
+    else:
+        # Ler prompts
+        prompts_file = os.path.join(base_dir, 'data', 'prompts.txt')
+        try:
+            with open(prompts_file, 'r', encoding='utf-8') as f:
+                prompts = [line.strip() for line in f.readlines() if line.strip()]
+        except FileNotFoundError:
+            print(f"Erro: Arquivo de prompts não encontrado em {prompts_file}")
+            return
 
     if not prompts:
-        print("Nenhum prompt encontrado no arquivo.")
+        print("Nenhum prompt encontrado.")
         return
 
     # Iniciar Playwright
@@ -47,53 +75,34 @@ def main():
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         )
         
-        # Restaurar sessão
         context.add_cookies(cookies)
-
         page = context.new_page()
-        
-        # Aplicar stealth
         stealth_sync(page)
 
         print("Navegando para Google Labs Flow...")
         page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded')
-        
-        # Atraso para processamento dos scripts
         time.sleep(random.uniform(3, 5))
 
         for idx, prompt in enumerate(prompts):
             print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
             print(f"Texto: '{prompt}'")
             try:
-                # Localizar caixa de texto
                 input_locator = page.locator('textarea, input[type="text"]').first
                 input_locator.wait_for(state='visible', timeout=10000)
-                
-                # Limpar conteúdo
                 input_locator.fill('')
-                
-                # Digitação progressiva
                 input_locator.type(prompt, delay=100)
-                
-                # Atraso pós digitação
                 time.sleep(random.uniform(1.0, 2.0))
-                
-                # Submeter
                 input_locator.press('Enter')
                 print("Solicitação enviada. Aguardando geração...")
                 
-                # Aguardar imagem ser gerada
-                # Como não temos o DOM exato, esperamos até 45s por uma alteração significativa ou por um locator genérico
                 time.sleep(random.uniform(3.0, 5.0))
                 
                 image_locator = page.locator('img').last
                 image_locator.wait_for(state='visible', timeout=45000)
                 
-                # Obter a URL da imagem
                 img_src = image_locator.get_attribute('src')
                 
                 if img_src:
-                    print(f"Imagem encontrada. Baixando...")
                     if img_src.startswith('http'):
                         response = page.request.get(img_src)
                         img_data = response.body()
@@ -111,6 +120,9 @@ def main():
                     with open(filepath, 'wb') as f:
                         f.write(img_data)
                     print(f"Sucesso: Imagem salva em {filepath}")
+                    
+                    # Enviar para o Telegram!
+                    send_to_telegram(filepath, f"🎨 **Prompt:** {prompt}")
                 else:
                     print("Falha: Não foi possível obter o src da imagem.")
                     
