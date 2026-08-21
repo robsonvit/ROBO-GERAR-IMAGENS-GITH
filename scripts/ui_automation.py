@@ -131,51 +131,81 @@ def main():
                 image_locator = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').last
                 image_locator.wait_for(state='visible', timeout=45000)
                 
-                # Pega o .src absoluto (em vez do atributo raw)
-                img_src = image_locator.evaluate("node => node.src")
-                print(f"URL da imagem gerada: {img_src[:100]}...")
+                print("Extraindo coordenadas da imagem para forçar menus de 2K...")
+                box = image_locator.bounding_box()
+                if not box:
+                    raise Exception("Imagem não possui bounding box visível.")
+                    
+                # 1. Hover na imagem para revelar o botão de Opções
+                page.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
+                time.sleep(1.5)
                 
-                if img_src:
-                    if img_src.startswith('blob:'):
-                        # Para blobs, temos que usar fetch via JavaScript do navegador
-                        base64_data = page.evaluate('''async (url) => {
-                            const res = await fetch(url);
-                            const blob = await res.blob();
-                            return new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onloadend = () => resolve(reader.result);
-                                reader.onerror = reject;
-                                reader.readAsDataURL(blob);
-                            });
-                        }''', img_src)
-                        import base64
-                        header, encoded = base64_data.split(",", 1)
-                        img_data = base64.b64decode(encoded)
-                    elif img_src.startswith('http'):
-                        # Playwright request funciona em http nativamente
-                        # Se não passar os cookies no request.get pode dar erro 403, 
-                        # mas o context gerencia os cookies automaticamente!
-                        response = page.request.get(img_src)
-                        img_data = response.body()
-                    elif img_src.startswith('data:image'):
-                        import base64
-                        header, encoded = img_src.split(",", 1)
-                        img_data = base64.b64decode(encoded)
-                    else:
-                        print(f"Formato de src de imagem não suportado: {img_src[:50]}")
-                        continue
-                        
-                    filename = f"geracao_{idx + 1}_{int(time.time())}.png"
-                    filepath = os.path.join(output_dir, filename)
+                # 2. Encontrar e clicar no botão de 3 pontos
+                dots_coords = page.evaluate('''() => {
+                    const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
+                    if (!imgs.length) return null;
+                    const r = imgs[imgs.length - 1].getBoundingClientRect();
+                    const btns = Array.from(document.querySelectorAll('button')).filter(btn => {
+                        const rc = btn.getBoundingClientRect();
+                        if (rc.width === 0) return false;
+                        const cx = rc.left + rc.width/2;
+                        const cy = rc.top + rc.height/2;
+                        return cx >= r.right - 150 && cx <= r.right + 15 && cy >= r.top - 15 && cy <= r.top + 60;
+                    });
+                    if(!btns.length) return null;
+                    btns.sort((a,b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
+                    const br = btns[0].getBoundingClientRect();
+                    return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                }''')
+                
+                if not dots_coords:
+                    raise Exception("Botão de opções (3 pontos) não encontrado na imagem.")
                     
-                    with open(filepath, 'wb') as f:
-                        f.write(img_data)
-                    print(f"Sucesso: Imagem salva em {filepath}")
+                page.mouse.click(dots_coords['x'], dots_coords['y'])
+                time.sleep(1.5)
+                
+                # 3. Encontrar menu "Baixar"
+                baixar_coords = page.evaluate('''() => {
+                    const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
+                        const t = (el.textContent||'').toLowerCase();
+                        return t.includes('baixar') || t.includes('download');
+                    });
+                    if(!items.length) return null;
+                    const br = items[0].getBoundingClientRect();
+                    return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                }''')
+                
+                if not baixar_coords:
+                    raise Exception("Item de menu 'Baixar' não encontrado.")
                     
-                    # Enviar para o Telegram!
-                    send_to_telegram(filepath, f"🎨 **Prompt:** {prompt}")
-                else:
-                    print("Falha: Não foi possível obter o src da imagem.")
+                page.mouse.move(baixar_coords['x'], baixar_coords['y'])
+                time.sleep(1.5)
+                
+                # 4. Encontrar botão "2K"
+                k2_coords = page.evaluate('''() => {
+                    const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
+                        return (el.textContent||'').toLowerCase().includes('2k');
+                    });
+                    if(!items.length) return null;
+                    const br = items[0].getBoundingClientRect();
+                    return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                }''')
+                
+                if not k2_coords:
+                    raise Exception("Botão '2K' não encontrado no submenu.")
+                    
+                print("Iniciando interceptação oficial do download...")
+                with page.expect_download(timeout=45000) as download_info:
+                    page.mouse.click(k2_coords['x'], k2_coords['y'])
+                    
+                download = download_info.value
+                filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
+                file_path = os.path.join(output_dir, filename)
+                download.save_as(file_path)
+                print(f"Sucesso: Imagem 2K salva em {file_path}")
+                
+                # Enviar para o Telegram via bot
+                send_to_telegram(file_path, f"🎨 **Prompt:** {prompt}")
                     
             except Exception as e:
                 print(f"Erro durante o processamento do prompt '{prompt}': {e}")
