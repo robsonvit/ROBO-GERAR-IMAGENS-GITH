@@ -98,9 +98,15 @@ def main():
             print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
             print(f"Texto: '{prompt}'")
             try:
-                input_locator = page.locator('textarea:not([name*="recaptcha"]), input[type="text"]:not([name*="recaptcha"])').locator('visible=true').first
+                # Google Labs costuma usar <div contenteditable> ou textareas muito complexos.
+                # get_by_role('textbox') pega qualquer campo de texto visível e acessível!
+                input_locator = page.get_by_role('textbox').last
                 input_locator.wait_for(state='visible', timeout=15000)
-                input_locator.fill('')
+                
+                # Clique e limpeza universal
+                input_locator.click()
+                page.keyboard.press('Control+A')
+                page.keyboard.press('Backspace')
                 input_locator.type(prompt, delay=100)
                 time.sleep(random.uniform(1.0, 2.0))
                 input_locator.press('Enter')
