@@ -227,15 +227,16 @@ def main():
                 baixar_coords = page.evaluate('''() => {
                     const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
                         const t = (el.textContent||'').toLowerCase();
-                        return t.includes('baixar') || t.includes('download');
+                        const br = el.getBoundingClientRect();
+                        return (t.includes('baixar') || t.includes('download')) && br.width > 0 && br.height > 0;
                     });
                     if(!items.length) return null;
-                    const br = items[0].getBoundingClientRect();
+                    const br = items[items.length - 1].getBoundingClientRect(); // Pega o último renderizado (mais recente na tela)
                     return { x: br.left + br.width/2, y: br.top + br.height/2 };
                 }''')
                 
                 if not baixar_coords:
-                    raise Exception("Item de menu 'Baixar' não encontrado.")
+                    raise Exception("Item de menu 'Baixar' não encontrado visível.")
                     
                 page.mouse.move(baixar_coords['x'], baixar_coords['y'])
                 time.sleep(2.0)
@@ -244,10 +245,11 @@ def main():
                 # 4. Encontrar botão "2K"
                 k2_coords = page.evaluate('''() => {
                     const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
-                        return (el.textContent||'').toLowerCase().includes('2k');
+                        const br = el.getBoundingClientRect();
+                        return (el.textContent||'').toLowerCase().includes('2k') && br.width > 0 && br.height > 0;
                     });
                     if(!items.length) return null;
-                    const br = items[0].getBoundingClientRect();
+                    const br = items[items.length - 1].getBoundingClientRect();
                     return { x: br.left + br.width/2, y: br.top + br.height/2 };
                 }''')
                 
