@@ -120,21 +120,6 @@ def main():
         # Carregar os cookies
         print("Injetando cookies de autenticação do Google...")
         context.add_cookies(cookies)
-        page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded')
-        time.sleep(random.uniform(3, 5))
-        
-        try:
-            print("Procurando botão '+ Novo projeto'...")
-            # Pega qualquer botão que contenha 'Novo projeto'
-            btn_novo = page.locator("text=/Novo projeto/i").first
-            # Se não estiver visível nos primeiros 5s, ignora e segue (pode já estar na tela certa)
-            if btn_novo.is_visible(timeout=5000):
-                btn_novo.click()
-                print("✅ Botão '+ Novo projeto' clicado!")
-                time.sleep(random.uniform(3.0, 5.0))
-        except Exception as e:
-            print(f"Botão não precisou ser clicado ou não achou: {e}")
-
         sucessos = 0
         falhas = 0
 
@@ -145,19 +130,25 @@ def main():
             tempo_restante = (len(prompts) - idx) * 2 # estimativa de 2 min por imagem
             edit_status_message(status_msg_id, f"⏳ *Gerando imagem {idx + 1} de {len(prompts)}*\nTempo estimado restante: ~{tempo_restante} minuto(s)")
             
+            # Navega para a home do Flow a cada prompt para garantir uma tela 100% limpa (Novo Projeto)
+            page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded')
+            time.sleep(random.uniform(3, 5))
+            
             try:
-                # O Google Labs usa o Slate. Vamos usar o root editor e limpar o documento todo!
+                print("Procurando botão '+ Novo projeto'...")
+                btn_novo = page.locator("text=/Novo projeto/i").first
+                if btn_novo.is_visible(timeout=5000):
+                    btn_novo.click()
+                    print("✅ Botão '+ Novo projeto' clicado para iniciar tela limpa!")
+                    time.sleep(random.uniform(3.0, 5.0))
+            except Exception as e:
+                print(f"Botão não precisou ser clicado ou não achou: {e}")
+            
+            try:
+                # Localiza o editor raiz do Google Labs
                 input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"]').first
                 input_locator.wait_for(state='visible', timeout=15000)
-                
-                # Clique e limpeza universal (Ctrl+A duplo pega todos os blocos no Slate)
                 input_locator.click()
-                page.keyboard.press('Control+A')
-                time.sleep(0.2)
-                page.keyboard.press('Control+A')
-                time.sleep(0.2)
-                page.keyboard.press('Backspace')
-                time.sleep(0.5)
                 
                 # Conta quantas imagens existem ANTES de enviar o prompt
                 old_count = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').count()
