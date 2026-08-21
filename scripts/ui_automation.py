@@ -131,10 +131,30 @@ def main():
                 image_locator = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').last
                 image_locator.wait_for(state='visible', timeout=45000)
                 
-                img_src = image_locator.get_attribute('src')
+                # Pega o .src absoluto (em vez do atributo raw)
+                img_src = image_locator.evaluate("node => node.src")
+                print(f"URL da imagem gerada: {img_src[:100]}...")
                 
                 if img_src:
-                    if img_src.startswith('http'):
+                    if img_src.startswith('blob:'):
+                        # Para blobs, temos que usar fetch via JavaScript do navegador
+                        base64_data = page.evaluate('''async (url) => {
+                            const res = await fetch(url);
+                            const blob = await res.blob();
+                            return new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve(reader.result);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(blob);
+                            });
+                        }''', img_src)
+                        import base64
+                        header, encoded = base64_data.split(",", 1)
+                        img_data = base64.b64decode(encoded)
+                    elif img_src.startswith('http'):
+                        # Playwright request funciona em http nativamente
+                        # Se não passar os cookies no request.get pode dar erro 403, 
+                        # mas o context gerencia os cookies automaticamente!
                         response = page.request.get(img_src)
                         img_data = response.body()
                     elif img_src.startswith('data:image'):
@@ -142,7 +162,7 @@ def main():
                         header, encoded = img_src.split(",", 1)
                         img_data = base64.b64decode(encoded)
                     else:
-                        print("Formato de src de imagem não suportado para download direto.")
+                        print(f"Formato de src de imagem não suportado: {img_src[:50]}")
                         continue
                         
                     filename = f"geracao_{idx + 1}_{int(time.time())}.png"
