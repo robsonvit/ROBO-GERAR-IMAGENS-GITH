@@ -142,38 +142,53 @@ def main():
                 image_locator = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').last
                 image_locator.wait_for(state='visible', timeout=45000)
                 
-                print("Extraindo coordenadas da imagem para forçar menus de 2K...")
-                box = image_locator.bounding_box()
-                if not box:
-                    raise Exception("Imagem não possui bounding box visível.")
+                # 1 e 2. Wiggle do mouse até a geração finalizar e o botão de 3 pontos aparecer
+                print("Aguardando finalização da geração (balançando o mouse até o ícone de 3 pontos aparecer)...")
+                dots_coords = None
+                for attempt in range(60): # 60 * 2s = 120s
+                    box = page.evaluate('''() => {
+                        const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
+                        if (!imgs.length) return null;
+                        const r = imgs[imgs.length - 1].getBoundingClientRect();
+                        return {x: r.left, y: r.top, width: r.width, height: r.height, right: r.right};
+                    }''')
                     
-                # 1. Hover na imagem para revelar o botão de Opções
-                page.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
-                time.sleep(1.5)
-                page.screenshot(path=os.path.join(output_dir, f"debug_1_hover_{idx}.png"))
-                
-                # 2. Encontrar e clicar no botão de 3 pontos (Aguarda a geração finalizar)
-                print("Aguardando finalização da geração (ícone de 3 pontos aparecer)...")
-                dots_handle = page.wait_for_function('''() => {
-                    const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
-                    if (!imgs.length) return false;
-                    const r = imgs[imgs.length - 1].getBoundingClientRect();
-                    const btns = Array.from(document.querySelectorAll('button')).filter(btn => {
-                        const rc = btn.getBoundingClientRect();
-                        if (rc.width === 0) return false;
-                        const cx = rc.left + rc.width/2;
-                        const cy = rc.top + rc.height/2;
-                        return cx >= r.right - 150 && cx <= r.right + 15 && cy >= r.top - 15 && cy <= r.top + 60;
-                    });
-                    if(btns.length > 0) {
-                        btns.sort((a,b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
-                        const br = btns[0].getBoundingClientRect();
-                        return { x: br.left + br.width/2, y: br.top + br.height/2 };
-                    }
-                    return false;
-                }''', timeout=120000)
-                
-                dots_coords = dots_handle.json_value()
+                    if box:
+                        # Wiggle the mouse to ensure hover state is triggered even if the DOM re-rendered
+                        page.mouse.move(box['x'] + box['width']/2, box['y'] + box['height']/2)
+                        time.sleep(0.2)
+                        page.mouse.move(box['x'] + box['width']/2 + 10, box['y'] + box['height']/2 + 10)
+                        time.sleep(0.3)
+                        
+                        coords = page.evaluate('''() => {
+                            const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
+                            if (!imgs.length) return null;
+                            const r = imgs[imgs.length - 1].getBoundingClientRect();
+                            const btns = Array.from(document.querySelectorAll('button')).filter(btn => {
+                                const rc = btn.getBoundingClientRect();
+                                if (rc.width === 0) return false;
+                                const cx = rc.left + rc.width/2;
+                                const cy = rc.top + rc.height/2;
+                                return cx >= r.right - 150 && cx <= r.right + 15 && cy >= r.top - 15 && cy <= r.top + 60;
+                            });
+                            if(btns.length > 0) {
+                                btns.sort((a,b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
+                                const br = btns[0].getBoundingClientRect();
+                                return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                            }
+                            return null;
+                        }''')
+                        
+                        if coords:
+                            dots_coords = coords
+                            break
+                            
+                    time.sleep(1.5)
+                    
+                if not dots_coords:
+                    raise Exception("Timeout 120s: Botão de opções (3 pontos) não apareceu. A imagem pode não ter terminado de gerar.")
+                    
+                page.screenshot(path=os.path.join(output_dir, f"debug_1_hover_success_{idx}.png"))
                     
                 page.mouse.click(dots_coords['x'], dots_coords['y'])
                 time.sleep(1.5)
