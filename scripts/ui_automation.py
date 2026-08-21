@@ -151,10 +151,11 @@ def main():
                 time.sleep(1.5)
                 page.screenshot(path=os.path.join(output_dir, f"debug_1_hover_{idx}.png"))
                 
-                # 2. Encontrar e clicar no botão de 3 pontos
-                dots_coords = page.evaluate('''() => {
+                # 2. Encontrar e clicar no botão de 3 pontos (Aguarda a geração finalizar)
+                print("Aguardando finalização da geração (ícone de 3 pontos aparecer)...")
+                dots_handle = page.wait_for_function('''() => {
                     const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
-                    if (!imgs.length) return null;
+                    if (!imgs.length) return false;
                     const r = imgs[imgs.length - 1].getBoundingClientRect();
                     const btns = Array.from(document.querySelectorAll('button')).filter(btn => {
                         const rc = btn.getBoundingClientRect();
@@ -163,14 +164,15 @@ def main():
                         const cy = rc.top + rc.height/2;
                         return cx >= r.right - 150 && cx <= r.right + 15 && cy >= r.top - 15 && cy <= r.top + 60;
                     });
-                    if(!btns.length) return null;
-                    btns.sort((a,b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
-                    const br = btns[0].getBoundingClientRect();
-                    return { x: br.left + br.width/2, y: br.top + br.height/2 };
-                }''')
+                    if(btns.length > 0) {
+                        btns.sort((a,b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
+                        const br = btns[0].getBoundingClientRect();
+                        return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                    }
+                    return false;
+                }''', timeout=120000)
                 
-                if not dots_coords:
-                    raise Exception("Botão de opções (3 pontos) não encontrado na imagem.")
+                dots_coords = dots_handle.json_value()
                     
                 page.mouse.click(dots_coords['x'], dots_coords['y'])
                 time.sleep(1.5)
