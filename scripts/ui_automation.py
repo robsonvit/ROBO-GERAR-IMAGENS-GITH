@@ -110,9 +110,8 @@ def main():
             print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
             print(f"Texto: '{prompt}'")
             try:
-                # Google Labs costuma usar <div contenteditable> ou textareas muito complexos.
-                # get_by_role('textbox') pega qualquer campo de texto visível e acessível!
-                input_locator = page.get_by_role('textbox').last
+                # O Google Labs usa um editor Slate, que é um div com contenteditable="true"
+                input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"], textarea, input[type="text"]').last
                 input_locator.wait_for(state='visible', timeout=15000)
                 
                 # Clique e limpeza universal
