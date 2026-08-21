@@ -79,16 +79,10 @@ def main():
     # Iniciar Playwright
     with sync_playwright() as p:
         print("Iniciando navegador headless...")
-        ext_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "GERAR IMAGENS FLOW - Copia"))
-        print(f"Carregando extensão: {ext_path}")
         
         context = p.chromium.launch_persistent_context(
             user_data_dir="/tmp/playwright_user_data",
             headless=False,
-            args=[
-                f"--disable-extensions-except={ext_path}",
-                f"--load-extension={ext_path}"
-            ],
             accept_downloads=True,
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         )
@@ -153,13 +147,76 @@ def main():
                 if not box:
                     raise Exception("Imagem não possui bounding box visível.")
                     
-                print("Acionando a extensão do usuário (GERAR IMAGENS FLOW) para baixar em 2K...")
+                # 1. Hover na imagem para revelar o botão de Opções
+                page.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
+                time.sleep(1.5)
+                page.screenshot(path=os.path.join(output_dir, f"debug_1_hover_{idx}.png"))
+                
+                # 2. Encontrar e clicar no botão de 3 pontos (Aguarda a geração finalizar)
+                print("Aguardando finalização da geração (ícone de 3 pontos aparecer)...")
+                dots_handle = page.wait_for_function('''() => {
+                    const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
+                    if (!imgs.length) return false;
+                    const r = imgs[imgs.length - 1].getBoundingClientRect();
+                    const btns = Array.from(document.querySelectorAll('button')).filter(btn => {
+                        const rc = btn.getBoundingClientRect();
+                        if (rc.width === 0) return false;
+                        const cx = rc.left + rc.width/2;
+                        const cy = rc.top + rc.height/2;
+                        return cx >= r.right - 150 && cx <= r.right + 15 && cy >= r.top - 15 && cy <= r.top + 60;
+                    });
+                    if(btns.length > 0) {
+                        btns.sort((a,b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
+                        const br = btns[0].getBoundingClientRect();
+                        return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                    }
+                    return false;
+                }''', timeout=120000)
+                
+                dots_coords = dots_handle.json_value()
+                    
+                page.mouse.click(dots_coords['x'], dots_coords['y'])
+                time.sleep(1.5)
+                page.screenshot(path=os.path.join(output_dir, f"debug_2_dots_{idx}.png"))
+                
+                # 3. Encontrar menu "Baixar"
+                baixar_coords = page.evaluate('''() => {
+                    const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
+                        const t = (el.textContent||'').toLowerCase();
+                        return t.includes('baixar') || t.includes('download');
+                    });
+                    if(!items.length) return null;
+                    const br = items[0].getBoundingClientRect();
+                    return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                }''')
+                
+                if not baixar_coords:
+                    raise Exception("Item de menu 'Baixar' não encontrado.")
+                    
+                page.mouse.move(baixar_coords['x'], baixar_coords['y'])
+                time.sleep(2.0)
+                page.screenshot(path=os.path.join(output_dir, f"debug_3_baixar_{idx}.png"))
+                
+                # 4. Encontrar botão "2K"
+                k2_coords = page.evaluate('''() => {
+                    const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
+                        return (el.textContent||'').toLowerCase().includes('2k');
+                    });
+                    if(!items.length) return null;
+                    const br = items[0].getBoundingClientRect();
+                    return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                }''')
+                
+                if not k2_coords:
+                    raise Exception("Botão '2K' não encontrado no submenu.")
+                    
+                print("Iniciando interceptação oficial do download...")
                 try:
                     with page.expect_download(timeout=150000) as download_info:
-                        # O atalho Ctrl+Shift+Y na extensão pega a última imagem e baixa em 2K
-                        page.keyboard.press("Control+Shift+Y")
-                        time.sleep(3.0)
-                        page.screenshot(path=os.path.join(output_dir, f"debug_4_extension_triggered_{idx}.png"))
+                        # Clica nativamente pelo Playwright
+                        page.mouse.click(k2_coords['x'], k2_coords['y'])
+                        time.sleep(1.0)
+                        page.screenshot(path=os.path.join(output_dir, f"debug_4_clicked_2k_{idx}.png"))
                         
                     download = download_info.value
                     filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
@@ -188,8 +245,8 @@ def main():
                 print(f"Rate Limit: Aguardando {delay:.2f}s para a próxima geração...")
                 time.sleep(delay)
 
-        print("\nFinalizado o processamento de todos os prompts.")
-        browser.close()
+        print("Finalizado o processamento de todos os prompts.")
+        context.close()
 
 if __name__ == "__main__":
     main()
