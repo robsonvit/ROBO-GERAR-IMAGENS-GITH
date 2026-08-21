@@ -111,7 +111,8 @@ def main():
             print(f"Texto: '{prompt}'")
             try:
                 # O Google Labs usa um editor Slate, que é um div com contenteditable="true"
-                input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"], textarea, input[type="text"]').last
+                # O pseudo-seletor :visible garante que ele ignore o textarea invisível do recaptcha
+                input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"]:visible, textarea:not([name="g-recaptcha-response"]):visible').last
                 input_locator.wait_for(state='visible', timeout=15000)
                 
                 # Clique e limpeza universal
