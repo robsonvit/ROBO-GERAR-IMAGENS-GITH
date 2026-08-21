@@ -98,8 +98,8 @@ def main():
             print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
             print(f"Texto: '{prompt}'")
             try:
-                input_locator = page.locator('textarea, input[type="text"]').first
-                input_locator.wait_for(state='visible', timeout=10000)
+                input_locator = page.locator('textarea:not([name*="recaptcha"]), input[type="text"]:not([name*="recaptcha"])').locator('visible=true').first
+                input_locator.wait_for(state='visible', timeout=15000)
                 input_locator.fill('')
                 input_locator.type(prompt, delay=100)
                 time.sleep(random.uniform(1.0, 2.0))
