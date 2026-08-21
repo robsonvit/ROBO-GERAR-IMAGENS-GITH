@@ -5,7 +5,7 @@ import random
 import requests
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth
+from playwright_stealth import Stealth
 
 def send_to_telegram(filepath, caption):
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -88,7 +88,7 @@ def main():
         
         context.add_cookies(cookies)
         page = context.new_page()
-        stealth(page)
+        Stealth().apply_stealth_sync(page)
 
         print("Navegando para Google Labs Flow...")
         page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded')
