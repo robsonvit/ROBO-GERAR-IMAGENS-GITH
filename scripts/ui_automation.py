@@ -28,6 +28,31 @@ def send_to_telegram(filepath, caption):
     except Exception as e:
         print(f"Erro ao enviar para o Telegram: {e}")
 
+def send_status_message(text):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    if not bot_token or not chat_id:
+        return None
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    try:
+        response = requests.post(url, data={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'})
+        if response.status_code == 200:
+            return response.json().get('result', {}).get('message_id')
+    except Exception as e:
+        print(f"Erro ao enviar mensagem de status: {e}")
+    return None
+
+def edit_status_message(message_id, text):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    if not bot_token or not chat_id or not message_id:
+        return
+    url = f"https://api.telegram.org/bot{bot_token}/editMessageText"
+    try:
+        requests.post(url, data={'chat_id': chat_id, 'message_id': message_id, 'text': text, 'parse_mode': 'Markdown'})
+    except Exception as e:
+        print(f"Erro ao editar mensagem de status: {e}")
+
 def main():
     # Carregar sessão de autenticação
     auth_session_str = os.environ.get('AUTH_SESSION_JSON')
@@ -60,8 +85,8 @@ def main():
     single_prompt = os.environ.get('SINGLE_PROMPT')
     
     if single_prompt and single_prompt.strip():
-        prompts = [single_prompt.strip()]
-        print(f"🤖 Modo Telegram: Executando apenas o prompt enviado -> {prompts[0]}")
+        prompts = [p.strip() for p in single_prompt.split('\n') if p.strip()]
+        print(f"🤖 Modo Telegram: Executando {len(prompts)} prompt(s) enviado(s)")
     else:
         # Ler prompts
         prompts_file = os.path.join(base_dir, 'data', 'prompts.txt')
@@ -75,6 +100,8 @@ def main():
     if not prompts:
         print("Nenhum prompt encontrado.")
         return
+
+    status_msg_id = send_status_message(f"⏳ *Iniciando geração de {len(prompts)} imagem(ns)...*")
 
     # Iniciar Playwright
     with sync_playwright() as p:
@@ -111,6 +138,10 @@ def main():
         for idx, prompt in enumerate(prompts):
             print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
             print(f"Texto: '{prompt}'")
+            
+            tempo_restante = (len(prompts) - idx) * 2 # estimativa de 2 min por imagem
+            edit_status_message(status_msg_id, f"⏳ *Gerando imagem {idx + 1} de {len(prompts)}*\nTempo estimado restante: ~{tempo_restante} minuto(s)")
+            
             try:
                 # O Google Labs usa o Slate. Vamos forçar o seletor mais robusto possível direto na raiz do editor!
                 input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"]').last
@@ -261,6 +292,8 @@ def main():
                 time.sleep(delay)
 
         print("Finalizado o processamento de todos os prompts.")
+        if 'status_msg_id' in locals():
+            edit_status_message(status_msg_id, f"✅ *Geração concluída!* Todas as {len(prompts)} imagens foram processadas.")
         context.close()
 
 if __name__ == "__main__":
