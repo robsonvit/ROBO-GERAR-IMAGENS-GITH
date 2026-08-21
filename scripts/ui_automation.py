@@ -135,6 +135,9 @@ def main():
         except Exception as e:
             print(f"Botão não precisou ser clicado ou não achou: {e}")
 
+        sucessos = 0
+        falhas = 0
+
         for idx, prompt in enumerate(prompts):
             print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
             print(f"Texto: '{prompt}'")
@@ -143,14 +146,18 @@ def main():
             edit_status_message(status_msg_id, f"⏳ *Gerando imagem {idx + 1} de {len(prompts)}*\nTempo estimado restante: ~{tempo_restante} minuto(s)")
             
             try:
-                # O Google Labs usa o Slate. Vamos forçar o seletor mais robusto possível direto na raiz do editor!
-                input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"]').last
+                # O Google Labs usa o Slate. Vamos usar o root editor e limpar o documento todo!
+                input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"]').first
                 input_locator.wait_for(state='visible', timeout=15000)
                 
-                # Clique e limpeza universal
+                # Clique e limpeza universal (Ctrl+A duplo pega todos os blocos no Slate)
                 input_locator.click()
                 page.keyboard.press('Control+A')
+                time.sleep(0.2)
+                page.keyboard.press('Control+A')
+                time.sleep(0.2)
                 page.keyboard.press('Backspace')
+                time.sleep(0.5)
                 
                 # Conta quantas imagens existem ANTES de enviar o prompt
                 old_count = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').count()
@@ -272,6 +279,7 @@ def main():
                     
                     # Enviar para o Telegram via bot
                     send_to_telegram(file_path, f"🎨 **Prompt:** {prompt}")
+                    sucessos += 1
                 except Exception as e:
                     page.screenshot(path=os.path.join(output_dir, f"debug_5_timeout_{idx}.png"))
                     raise Exception(f"Falha ao interceptar download 2K: {e}")
@@ -284,6 +292,7 @@ def main():
                 page.screenshot(path=error_path)
                 print(f"Screenshot de erro salvo em {error_path}")
                 send_to_telegram(error_path, f"🚨 **Erro no bot!** {e}\nVeja a última tela:")
+                falhas += 1
                 
             # Rate Limit entre gerações
             if idx < len(prompts) - 1:
@@ -293,7 +302,8 @@ def main():
 
         print("Finalizado o processamento de todos os prompts.")
         if 'status_msg_id' in locals():
-            edit_status_message(status_msg_id, f"✅ *Geração concluída!* Todas as {len(prompts)} imagens foram processadas.")
+            msg_fim = f"✅ *Processo Concluído!*\n\n📊 *Resumo:*\n✔️ Sucessos: {sucessos}\n❌ Falhas: {falhas}\nTotal de prompts recebidos: {len(prompts)}"
+            edit_status_message(status_msg_id, msg_fim)
         context.close()
 
 if __name__ == "__main__":
