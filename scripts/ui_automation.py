@@ -124,11 +124,22 @@ def main():
         falhas = 0
 
         for idx, prompt in enumerate(prompts):
+            start_time_prompt = time.time()
+            
+            def update_status(percent, status_text):
+                bar_length = 10
+                filled_length = int(bar_length * percent // 100)
+                bar = '█' * filled_length + '░' * (bar_length - filled_length)
+                tempo_decorrido = int(time.time() - start_time_prompt)
+                tempo_rest_est = max(0, 90 - tempo_decorrido) # Estimativa baseada em 90s por imagem
+                
+                msg = f"⏳ *Processando imagem {idx + 1} de {len(prompts)}*\n\n`[{bar}] {percent}%`\n💡 _{status_text}_\n\n⏱️ **Rodando há:** {tempo_decorrido}s\n⏳ **Falta aprox:** {tempo_rest_est}s"
+                edit_status_message(status_msg_id, msg)
+
             print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
             print(f"Texto: '{prompt}'")
             
-            tempo_restante = (len(prompts) - idx) * 2 # estimativa de 2 min por imagem
-            edit_status_message(status_msg_id, f"⏳ *Gerando imagem {idx + 1} de {len(prompts)}*\nTempo estimado restante: ~{tempo_restante} minuto(s)")
+            update_status(10, "Abrindo laboratório de imagens...")
             
             # Navega para a home do Flow a cada prompt para garantir uma tela 100% limpa (Novo Projeto)
             page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded')
@@ -153,11 +164,13 @@ def main():
                 # Conta quantas imagens existem ANTES de enviar o prompt
                 old_count = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').count()
                 
+                update_status(30, "Digitando seu prompt...")
                 input_locator.type(prompt, delay=100)
                 time.sleep(random.uniform(1.0, 2.0))
                 input_locator.press('Enter')
                 print(f"Solicitação enviada. Imagens antes: {old_count}. Aguardando geração da nova imagem...")
                 
+                update_status(50, "Google trabalhando (Desenhando imagem)...")
                 # Espera até que o número de imagens na tela aumente
                 page.wait_for_function(f'''() => {{
                     const imgs = Array.from(document.querySelectorAll('img'));
@@ -173,6 +186,7 @@ def main():
                 
                 # 1 e 2. Wiggle do mouse até a geração finalizar e o botão de 3 pontos aparecer
                 print("Aguardando finalização da geração (balançando o mouse até o ícone de 3 pontos aparecer)...")
+                update_status(75, "Renderizando e aguardando botões...")
                 dots_coords = None
                 for attempt in range(60): # 60 * 2s = 120s
                     box = page.evaluate('''() => {
@@ -257,6 +271,7 @@ def main():
                     raise Exception("Botão '2K' não encontrado no submenu.")
                     
                 print("Iniciando interceptação oficial do download...")
+                update_status(90, "Baixando versão em Altíssima Qualidade (2K)...")
                 try:
                     with page.expect_download(timeout=150000) as download_info:
                         # Clica nativamente pelo Playwright
