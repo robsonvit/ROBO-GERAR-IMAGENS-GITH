@@ -1,5 +1,9 @@
 name: Generate Images (UI Automation)
 
+concurrency:
+  group: telegram-bot
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
     inputs:
