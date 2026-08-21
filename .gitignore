@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+output/
+AUTH_SESSION_JSON
+.env
+.pytest_cache/
