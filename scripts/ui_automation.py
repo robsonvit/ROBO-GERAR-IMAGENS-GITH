@@ -83,6 +83,7 @@ def main():
         
         # User-Agent comum
         context = browser.new_context(
+            accept_downloads=True,
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         )
         
@@ -132,7 +133,7 @@ def main():
                     const imgs = Array.from(document.querySelectorAll('img'));
                     const currentCount = imgs.filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:')).length;
                     return currentCount > {old_count};
-                }}''', timeout=90000)
+                }}''', timeout=120000)
                 
                 print("Nova imagem gerada detectada com sucesso!")
                 time.sleep(2.0) # Pequeno fôlego para a imagem renderizar completamente
@@ -208,7 +209,7 @@ def main():
                     
                 print("Iniciando interceptação oficial do download...")
                 try:
-                    with page.expect_download(timeout=60000) as download_info:
+                    with page.expect_download(timeout=150000) as download_info:
                         page.mouse.click(k2_coords['x'], k2_coords['y'])
                         page.screenshot(path=os.path.join(output_dir, f"debug_4_clicked_2k_{idx}.png"))
                         
@@ -226,12 +227,12 @@ def main():
                     
             except Exception as e:
                 print(f"Erro durante o processamento do prompt '{prompt}': {e}")
-                try:
-                    error_img = os.path.join(output_dir, f"error_{idx}.png")
-                    page.screenshot(path=error_img)
-                    send_to_telegram(error_img, "🚨 Erro! O bot não achou a caixa de texto. Veja o que ele está vendo:")
-                except Exception as ex:
-                    print(f"Erro ao tirar screenshot: {ex}")
+                
+                # Salvar log/screenshot do erro
+                error_path = os.path.join(output_dir, f"error_{idx}.png")
+                page.screenshot(path=error_path)
+                print(f"Screenshot de erro salvo em {error_path}")
+                send_to_telegram(error_path, f"🚨 **Erro no bot!** {e}\nVeja a última tela:")
                 
             # Rate Limit entre gerações
             if idx < len(prompts) - 1:
