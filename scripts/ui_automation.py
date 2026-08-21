@@ -110,9 +110,8 @@ def main():
             print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
             print(f"Texto: '{prompt}'")
             try:
-                # O Google Labs costuma usar <div contenteditable> ou textareas muito complexos.
-                # get_by_role('textbox') pega qualquer campo de texto visível e acessível!
-                input_locator = page.get_by_role('textbox').last
+                # O Google Labs usa o Slate. Vamos forçar o seletor mais robusto possível direto na raiz do editor!
+                input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"]').last
                 input_locator.wait_for(state='visible', timeout=15000)
                 
                 # Clique e limpeza universal
@@ -149,6 +148,7 @@ def main():
                 # 1. Hover na imagem para revelar o botão de Opções
                 page.mouse.move(box['x'] + box['width'] / 2, box['y'] + box['height'] / 2)
                 time.sleep(1.5)
+                page.screenshot(path=os.path.join(output_dir, f"debug_1_hover_{idx}.png"))
                 
                 # 2. Encontrar e clicar no botão de 3 pontos
                 dots_coords = page.evaluate('''() => {
@@ -173,6 +173,7 @@ def main():
                     
                 page.mouse.click(dots_coords['x'], dots_coords['y'])
                 time.sleep(1.5)
+                page.screenshot(path=os.path.join(output_dir, f"debug_2_dots_{idx}.png"))
                 
                 # 3. Encontrar menu "Baixar"
                 baixar_coords = page.evaluate('''() => {
@@ -189,7 +190,8 @@ def main():
                     raise Exception("Item de menu 'Baixar' não encontrado.")
                     
                 page.mouse.move(baixar_coords['x'], baixar_coords['y'])
-                time.sleep(1.5)
+                time.sleep(2.0)
+                page.screenshot(path=os.path.join(output_dir, f"debug_3_baixar_{idx}.png"))
                 
                 # 4. Encontrar botão "2K"
                 k2_coords = page.evaluate('''() => {
@@ -205,17 +207,22 @@ def main():
                     raise Exception("Botão '2K' não encontrado no submenu.")
                     
                 print("Iniciando interceptação oficial do download...")
-                with page.expect_download(timeout=45000) as download_info:
-                    page.mouse.click(k2_coords['x'], k2_coords['y'])
+                try:
+                    with page.expect_download(timeout=60000) as download_info:
+                        page.mouse.click(k2_coords['x'], k2_coords['y'])
+                        page.screenshot(path=os.path.join(output_dir, f"debug_4_clicked_2k_{idx}.png"))
+                        
+                    download = download_info.value
+                    filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
+                    file_path = os.path.join(output_dir, filename)
+                    download.save_as(file_path)
+                    print(f"Sucesso: Imagem 2K salva em {file_path}")
                     
-                download = download_info.value
-                filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
-                file_path = os.path.join(output_dir, filename)
-                download.save_as(file_path)
-                print(f"Sucesso: Imagem 2K salva em {file_path}")
-                
-                # Enviar para o Telegram via bot
-                send_to_telegram(file_path, f"🎨 **Prompt:** {prompt}")
+                    # Enviar para o Telegram via bot
+                    send_to_telegram(file_path, f"🎨 **Prompt:** {prompt}")
+                except Exception as e:
+                    page.screenshot(path=os.path.join(output_dir, f"debug_5_timeout_{idx}.png"))
+                    raise Exception(f"Falha ao interceptar download 2K: {e}")
                     
             except Exception as e:
                 print(f"Erro durante o processamento do prompt '{prompt}': {e}")
