@@ -93,6 +93,18 @@ def main():
         print("Navegando para Google Labs Flow...")
         page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded')
         time.sleep(random.uniform(3, 5))
+        
+        try:
+            print("Procurando botão '+ Novo projeto'...")
+            # Pega qualquer botão que contenha 'Novo projeto'
+            btn_novo = page.locator("text=/Novo projeto/i").first
+            # Se não estiver visível nos primeiros 5s, ignora e segue (pode já estar na tela certa)
+            if btn_novo.is_visible(timeout=5000):
+                btn_novo.click()
+                print("✅ Botão '+ Novo projeto' clicado!")
+                time.sleep(random.uniform(3.0, 5.0))
+        except Exception as e:
+            print(f"Botão não precisou ser clicado ou não achou: {e}")
 
         for idx, prompt in enumerate(prompts):
             print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
