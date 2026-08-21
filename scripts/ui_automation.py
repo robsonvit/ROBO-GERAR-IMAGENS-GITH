@@ -145,6 +145,12 @@ def main():
                     
             except Exception as e:
                 print(f"Erro durante o processamento do prompt '{prompt}': {e}")
+                try:
+                    error_img = os.path.join(output_dir, f"error_{idx}.png")
+                    page.screenshot(path=error_img)
+                    send_to_telegram(error_img, "🚨 Erro! O bot não achou a caixa de texto. Veja o que ele está vendo:")
+                except Exception as ex:
+                    print(f"Erro ao tirar screenshot: {ex}")
                 
             # Rate Limit entre gerações
             if idx < len(prompts) - 1:
