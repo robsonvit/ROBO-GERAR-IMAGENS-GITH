@@ -170,7 +170,7 @@ def main():
                 print("Nova imagem gerada detectada com sucesso!")
                 time.sleep(2.0) # Pequeno fôlego para a imagem renderizar completamente
                 
-                image_locator = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').last
+                image_locator = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').first
                 image_locator.wait_for(state='visible', timeout=45000)
                 
                 # 1 e 2. Wiggle do mouse até a geração finalizar e o botão de 3 pontos aparecer
@@ -180,7 +180,7 @@ def main():
                     box = page.evaluate('''() => {
                         const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
                         if (!imgs.length) return null;
-                        const r = imgs[imgs.length - 1].getBoundingClientRect();
+                        const r = imgs[0].getBoundingClientRect();
                         return {x: r.left, y: r.top, width: r.width, height: r.height, right: r.right};
                     }''')
                     
@@ -194,7 +194,7 @@ def main():
                         coords = page.evaluate('''() => {
                             const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
                             if (!imgs.length) return null;
-                            const r = imgs[imgs.length - 1].getBoundingClientRect();
+                            const r = imgs[0].getBoundingClientRect();
                             const btns = Array.from(document.querySelectorAll('button')).filter(btn => {
                                 const rc = btn.getBoundingClientRect();
                                 if (rc.width === 0) return false;
