@@ -36,7 +36,18 @@ def main():
         return
 
     try:
-        cookies = json.loads(auth_session_str)
+        raw_cookies = json.loads(auth_session_str)
+        cookies = []
+        for c in raw_cookies:
+            # Remover chaves que o Playwright não aceita
+            for k in ['hostOnly', 'session', 'storeId', 'id']:
+                if k in c:
+                    del c[k]
+            # Consertar sameSite
+            if 'sameSite' in c:
+                if c['sameSite'] not in ['Strict', 'Lax', 'None']:
+                    del c['sameSite']
+            cookies.append(c)
     except json.JSONDecodeError:
         print("Erro: Falha ao interpretar o JSON da sessão AUTH_SESSION_JSON.")
         return
