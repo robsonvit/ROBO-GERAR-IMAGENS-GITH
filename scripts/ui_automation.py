@@ -263,6 +263,7 @@ def main():
                         return (el.textContent||'').toLowerCase().includes('2k') && br.width > 0 && br.height > 0;
                     });
                     if(!items.length) return null;
+                    // Tenta pegar o último (mais recente), se falhar podemos mudar pra [0]
                     const br = items[items.length - 1].getBoundingClientRect();
                     return { x: br.left + br.width/2, y: br.top + br.height/2 };
                 }''')
@@ -273,6 +274,8 @@ def main():
                 print("Iniciando interceptação oficial do download...")
                 update_status(90, "Baixando versão em Altíssima Qualidade (2K)...")
                 try:
+                    # Garantir que o submenu renderizou completamente
+                    time.sleep(1.5)
                     with page.expect_download(timeout=150000) as download_info:
                         # Clica nativamente pelo Playwright
                         page.mouse.click(k2_coords['x'], k2_coords['y'])
