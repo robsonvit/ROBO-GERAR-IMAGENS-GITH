@@ -276,36 +276,55 @@ def main():
                 try:
                     # Garantir que o submenu renderizou completamente
                     time.sleep(1.5)
-                    with page.expect_download(timeout=180000) as download_info:
-                        # Clica nativamente pelo Playwright
-                        page.mouse.click(k2_coords['x'], k2_coords['y'])
-                        
-                        # Fallback de segurança: Clicar via JS também para garantir que não perca o clique
-                        page.evaluate('''() => {
-                            const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
-                                const br = el.getBoundingClientRect();
-                                return (el.textContent||'').toLowerCase().includes('2k') && br.width > 0 && br.height > 0;
-                            });
-                            if(items.length) {
-                                items[items.length - 1].click();
-                            }
-                        }''')
-                        
-                        time.sleep(1.0)
-                        page.screenshot(path=os.path.join(output_dir, f"debug_4_clicked_2k_{idx}.png"))
-                        
-                    download = download_info.value
-                    filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
-                    file_path = os.path.join(output_dir, filename)
-                    download.save_as(file_path)
-                    print(f"Sucesso: Imagem 2K salva em {file_path}")
                     
-                    # Enviar para o Telegram via bot
-                    send_to_telegram(file_path, f"🎨 **Prompt:** {prompt}")
-                    sucessos += 1
-                except Exception as e:
-                    page.screenshot(path=os.path.join(output_dir, f"debug_5_timeout_{idx}.png"))
-                    raise Exception(f"Falha ao interceptar download 2K: {e}")
+                    download_success = False
+                    for tentativa_dl in range(3):
+                        try:
+                            print(f"Tentativa {tentativa_dl + 1} de interceptar o download...")
+                            # Reduzi o timeout individual para 60s, pois se for falhar, que tente novamente rápido
+                            with page.expect_download(timeout=60000) as download_info:
+                                # Fallback de segurança: Clicar via JS (método da extensão que é mais confiável)
+                                page.evaluate('''() => {
+                                    const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
+                                        const br = el.getBoundingClientRect();
+                                        return (el.textContent||'').toLowerCase().includes('2k') && br.width > 0 && br.height > 0;
+                                    });
+                                    if(items.length) {
+                                        items[items.length - 1].click();
+                                    }
+                                }''')
+                                
+                                time.sleep(1.0)
+                                page.screenshot(path=os.path.join(output_dir, f"debug_4_clicked_2k_{idx}_tentativa_{tentativa_dl + 1}.png"))
+                                
+                            download = download_info.value
+                            filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
+                            file_path = os.path.join(output_dir, filename)
+                            download.save_as(file_path)
+                            print(f"Sucesso: Imagem 2K salva em {file_path}")
+                            
+                            # Enviar para o Telegram via bot
+                            send_to_telegram(file_path, f"🎨 **Prompt:** {prompt}")
+                            sucessos += 1
+                            download_success = True
+                            break # Sai do loop porque deu certo
+                            
+                        except Exception as e:
+                            print(f"Erro na tentativa {tentativa_dl + 1} de download: {e}")
+                            if tentativa_dl < 2: # Se ainda tem tentativas, tenta reabrir o menu
+                                print("Tentando reabrir o menu de opções...")
+                                try:
+                                    page.mouse.click(dots_coords['x'], dots_coords['y'])
+                                    time.sleep(1.0)
+                                    page.mouse.move(baixar_coords['x'], baixar_coords['y'])
+                                    time.sleep(2.0)
+                                except Exception as err:
+                                    print(f"Erro ao tentar reabrir o menu: {err}")
+                    
+                    if not download_success:
+                        page.screenshot(path=os.path.join(output_dir, f"debug_5_timeout_{idx}.png"))
+                        raise Exception("Falha ao interceptar download 2K após 3 tentativas completas.")
+                        
                     
             except Exception as e:
                 print(f"Erro durante o processamento do prompt '{prompt}': {e}")
