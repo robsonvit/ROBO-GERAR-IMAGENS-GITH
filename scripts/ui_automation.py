@@ -276,9 +276,21 @@ def main():
                 try:
                     # Garantir que o submenu renderizou completamente
                     time.sleep(1.5)
-                    with page.expect_download(timeout=150000) as download_info:
+                    with page.expect_download(timeout=180000) as download_info:
                         # Clica nativamente pelo Playwright
                         page.mouse.click(k2_coords['x'], k2_coords['y'])
+                        
+                        # Fallback de segurança: Clicar via JS também para garantir que não perca o clique
+                        page.evaluate('''() => {
+                            const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
+                                const br = el.getBoundingClientRect();
+                                return (el.textContent||'').toLowerCase().includes('2k') && br.width > 0 && br.height > 0;
+                            });
+                            if(items.length) {
+                                items[items.length - 1].click();
+                            }
+                        }''')
+                        
                         time.sleep(1.0)
                         page.screenshot(path=os.path.join(output_dir, f"debug_4_clicked_2k_{idx}.png"))
                         
