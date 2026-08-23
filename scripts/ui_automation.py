@@ -3,9 +3,7 @@ import json
 import time
 import random
 import requests
-from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
-from playwright_stealth import Stealth
 
 def send_to_telegram(filepath, caption):
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -53,6 +51,13 @@ def edit_status_message(message_id, text):
     except Exception as e:
         print(f"Erro ao editar mensagem de status: {e}")
 
+def make_progress_bar(percent, elapsed, estimated_total=120):
+    bar_length = 10
+    filled_length = int(bar_length * percent // 100)
+    bar = '█' * filled_length + '░' * (bar_length - filled_length)
+    tempo_rest = max(0, estimated_total - elapsed)
+    return bar, tempo_rest
+
 def main():
     # Carregar sessão de autenticação
     auth_session_str = os.environ.get('AUTH_SESSION_JSON')
@@ -64,10 +69,10 @@ def main():
         raw_cookies = json.loads(auth_session_str)
         cookies = []
         for c in raw_cookies:
+            c = dict(c)  # copia para não mutar o original
             # Remover chaves que o Playwright não aceita
             for k in ['hostOnly', 'session', 'storeId', 'id']:
-                if k in c:
-                    del c[k]
+                c.pop(k, None)
             # Consertar sameSite
             if 'sameSite' in c:
                 if c['sameSite'] not in ['Strict', 'Lax', 'None']:
@@ -88,7 +93,7 @@ def main():
         prompts = [p.strip() for p in single_prompt.split('\n') if p.strip()]
         print(f"🤖 Modo Telegram: Executando {len(prompts)} prompt(s) enviado(s)")
     else:
-        # Ler prompts
+        # Ler prompts do arquivo
         prompts_file = os.path.join(base_dir, 'data', 'prompts.txt')
         try:
             with open(prompts_file, 'r', encoding='utf-8') as f:
@@ -107,19 +112,26 @@ def main():
     with sync_playwright() as p:
         print("Iniciando navegador headless...")
         
-        context = p.chromium.launch_persistent_context(
-            user_data_dir="/tmp/playwright_user_data",
+        browser = p.chromium.launch(
             headless=False,
-            accept_downloads=True,
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
         )
         
-        # Criar uma nova página no contexto persistente
-        page = context.pages[0] if context.pages else context.new_page()
+        context = browser.new_context(
+            accept_downloads=True,
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            viewport={'width': 1920, 'height': 1080}
+        )
         
-        # Carregar os cookies
+        page = context.new_page()
+        
+        # Injetar cookies ANTES de navegar
         print("Injetando cookies de autenticação do Google...")
+        # Primeiro navega para o domínio correto para que os cookies sejam aceitos
+        page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded', timeout=60000)
+        time.sleep(3)
         context.add_cookies(cookies)
+        
         sucessos = 0
         falhas = 0
 
@@ -127,226 +139,364 @@ def main():
             start_time_prompt = time.time()
             
             def update_status(percent, status_text):
-                bar_length = 10
-                filled_length = int(bar_length * percent // 100)
-                bar = '█' * filled_length + '░' * (bar_length - filled_length)
-                tempo_decorrido = int(time.time() - start_time_prompt)
-                tempo_rest_est = max(0, 90 - tempo_decorrido) # Estimativa baseada em 90s por imagem
-                
-                msg = f"⏳ *Processando imagem {idx + 1} de {len(prompts)}*\n\n`[{bar}] {percent}%`\n💡 _{status_text}_\n\n⏱️ **Rodando há:** {tempo_decorrido}s\n⏳ **Falta aprox:** {tempo_rest_est}s"
+                elapsed = int(time.time() - start_time_prompt)
+                bar, tempo_rest = make_progress_bar(percent, elapsed)
+                msg = (
+                    f"⏳ *Processando imagem {idx + 1} de {len(prompts)}*\n\n"
+                    f"`[{bar}] {percent}%`\n"
+                    f"💡 _{status_text}_\n\n"
+                    f"⏱️ **Rodando há:** {elapsed}s\n"
+                    f"⏳ **Falta aprox:** {tempo_rest}s"
+                )
                 edit_status_message(status_msg_id, msg)
 
-            print(f"\n--- Processando prompt {idx + 1}/{len(prompts)} ---")
+            print(f"\n{'='*60}")
+            print(f"--- Processando prompt {idx + 1}/{len(prompts)} ---")
             print(f"Texto: '{prompt}'")
-            
-            update_status(10, "Abrindo laboratório de imagens...")
-            
-            # Navega para a home do Flow a cada prompt para garantir uma tela 100% limpa (Novo Projeto)
-            page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded')
-            time.sleep(random.uniform(3, 5))
+            print(f"{'='*60}")
             
             try:
+                update_status(5, "Abrindo laboratório de imagens...")
+                
+                # CRÍTICO: Navega para a home a cada prompt para garantir tela limpa
+                print("Navegando para a home do Google Labs Flow...")
+                page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded', timeout=60000)
+                time.sleep(random.uniform(4, 6))
+                
+                # Salva screenshot inicial para debug
+                page.screenshot(path=os.path.join(output_dir, f"debug_0_inicial_{idx}.png"))
+                
+                # Tentar clicar em "Novo projeto" para garantir tela limpa
                 print("Procurando botão '+ Novo projeto'...")
-                btn_novo = page.locator("text=/Novo projeto/i").first
-                if btn_novo.is_visible(timeout=5000):
-                    btn_novo.click()
-                    print("✅ Botão '+ Novo projeto' clicado para iniciar tela limpa!")
-                    time.sleep(random.uniform(3.0, 5.0))
-            except Exception as e:
-                print(f"Botão não precisou ser clicado ou não achou: {e}")
-            
-            try:
-                # Localiza o editor raiz do Google Labs
+                try:
+                    btn_novo = page.locator("text=/Novo projeto/i").first
+                    if btn_novo.is_visible(timeout=8000):
+                        btn_novo.click()
+                        print("✅ Botão '+ Novo projeto' clicado!")
+                        time.sleep(random.uniform(3.0, 5.0))
+                    else:
+                        print("Botão 'Novo projeto' não visível, continuando...")
+                except Exception as e:
+                    print(f"Botão 'Novo projeto' não encontrado: {e}")
+                
+                update_status(15, "Aguardando campo de prompt...")
+                
+                # Localiza o editor do Google Labs
+                print("Aguardando editor de prompt...")
                 input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"]').first
-                input_locator.wait_for(state='visible', timeout=15000)
-                input_locator.click()
+                input_locator.wait_for(state='visible', timeout=20000)
                 
-                # Conta quantas imagens existem ANTES de enviar o prompt
+                # Contar imagens ANTES de digitar o prompt (para detectar quando nova imagem aparecer)
                 old_count = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').count()
+                print(f"Imagens existentes ANTES do prompt: {old_count}")
                 
-                update_status(30, "Digitando seu prompt...")
-                input_locator.type(prompt, delay=100)
+                update_status(25, "Digitando prompt...")
+                
+                # Clicar no editor e digitar o prompt
+                input_locator.click()
+                time.sleep(0.5)
+                
+                # Limpar o campo antes de digitar (caso tenha algo)
+                input_locator.press('Control+a')
+                input_locator.press('Delete')
+                time.sleep(0.3)
+                
+                # Digitar o prompt letra a letra com delay natural
+                input_locator.type(prompt, delay=80)
                 time.sleep(random.uniform(1.0, 2.0))
-                input_locator.press('Enter')
-                print(f"Solicitação enviada. Imagens antes: {old_count}. Aguardando geração da nova imagem...")
                 
-                update_status(50, "Google trabalhando (Desenhando imagem)...")
-                # Espera até que o número de imagens na tela aumente
+                page.screenshot(path=os.path.join(output_dir, f"debug_1_antes_envio_{idx}.png"))
+                
+                # Enviar o prompt
+                input_locator.press('Enter')
+                print(f"✅ Prompt enviado! Aguardando geração da imagem... (imagens antes: {old_count})")
+                
+                update_status(40, "Google trabalhando (Gerando imagem)...")
+                
+                # Aguarda até que o número de imagens aumente (nova imagem gerada)
+                # Timeout de 3 minutos para a IA gerar
+                print("Aguardando nova imagem aparecer na tela...")
                 page.wait_for_function(f'''() => {{
                     const imgs = Array.from(document.querySelectorAll('img'));
-                    const currentCount = imgs.filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:')).length;
+                    const currentCount = imgs.filter(i => 
+                        i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:')
+                    ).length;
                     return currentCount > {old_count};
-                }}''', timeout=120000)
+                }}''', timeout=180000)
                 
-                print("Nova imagem gerada detectada com sucesso!")
-                time.sleep(2.0) # Pequeno fôlego para a imagem renderizar completamente
+                print("✅ Nova imagem detectada!")
+                time.sleep(3.0)  # Aguarda renderização completa
                 
-                image_locator = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').first
-                image_locator.wait_for(state='visible', timeout=45000)
+                update_status(65, "Imagem gerada! Aguardando finalização...")
                 
-                # 1 e 2. Wiggle do mouse até a geração finalizar e o botão de 3 pontos aparecer
-                print("Aguardando finalização da geração (balançando o mouse até o ícone de 3 pontos aparecer)...")
-                update_status(75, "Renderizando e aguardando botões...")
-                dots_coords = None
-                for attempt in range(60): # 60 * 2s = 120s
-                    box = page.evaluate('''() => {
-                        const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
+                page.screenshot(path=os.path.join(output_dir, f"debug_2_imagem_detectada_{idx}.png"))
+                
+                # ─── FASE DE HOVER E BOTÃO DE 3 PONTOS ─────────────────────────────────
+                # Encontrar a primeira imagem gerada e fazer hover real sobre ela
+                print("Localizando a imagem para fazer hover...")
+                
+                # Script JS para encontrar a primeira imagem e suas coordenadas
+                img_box = None
+                for tentativa_hover in range(30):  # Até 60s de tentativas
+                    img_box = page.evaluate('''() => {
+                        const imgs = Array.from(document.querySelectorAll('img')).filter(i => 
+                            i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:')
+                        );
                         if (!imgs.length) return null;
-                        const r = imgs[0].getBoundingClientRect();
-                        return {x: r.left, y: r.top, width: r.width, height: r.height, right: r.right};
+                        const rect = imgs[0].getBoundingClientRect();
+                        if (rect.width === 0 || rect.height === 0) return null;
+                        return {
+                            x: rect.left,
+                            y: rect.top,
+                            width: rect.width,
+                            height: rect.height,
+                            cx: rect.left + rect.width / 2,
+                            cy: rect.top + rect.height / 2,
+                            right: rect.right
+                        };
                     }''')
+                    if img_box and img_box['width'] > 50:
+                        break
+                    time.sleep(2)
+                
+                if not img_box:
+                    raise Exception("Não foi possível localizar a imagem gerada na tela.")
+                
+                print(f"Imagem localizada em: x={img_box['x']:.0f}, y={img_box['y']:.0f}, w={img_box['width']:.0f}, h={img_box['height']:.0f}")
+                
+                # Hover na imagem com movimentos naturais para acionar os botões flutuantes
+                center_x = img_box['cx']
+                center_y = img_box['cy']
+                
+                update_status(75, "Ativando menu de download...")
+                
+                dots_coords = None
+                for tentativa_dots in range(45):  # Até 90s de tentativas
+                    # Movimento de hover suave sobre a imagem
+                    page.mouse.move(center_x - 20, center_y - 20)
+                    time.sleep(0.1)
+                    page.mouse.move(center_x, center_y)
+                    time.sleep(0.2)
+                    page.mouse.move(center_x + 10, center_y - 10)
+                    time.sleep(0.2)
                     
-                    if box:
-                        # Wiggle the mouse to ensure hover state is triggered even if the DOM re-rendered
-                        page.mouse.move(box['x'] + box['width']/2, box['y'] + box['height']/2)
-                        time.sleep(0.2)
-                        page.mouse.move(box['x'] + box['width']/2 + 10, box['y'] + box['height']/2 + 10)
-                        time.sleep(0.3)
+                    # Verificar se o botão de 3 pontos apareceu
+                    # O botão de 3 pontos fica no canto superior direito da imagem
+                    coords = page.evaluate('''(imgBox) => {
+                        // Procura qualquer botão que tenha aria-label com "mais" ou "opções" ou "menu"
+                        // ou que esteja posicionado no canto da imagem
+                        const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
                         
-                        coords = page.evaluate('''() => {
-                            const imgs = Array.from(document.querySelectorAll('img')).filter(i => i.src.includes('getMediaUrlRedirect') || i.src.startsWith('blob:'));
-                            if (!imgs.length) return null;
-                            const r = imgs[0].getBoundingClientRect();
-                            const btns = Array.from(document.querySelectorAll('button')).filter(btn => {
-                                const rc = btn.getBoundingClientRect();
-                                if (rc.width === 0) return false;
-                                const cx = rc.left + rc.width/2;
-                                const cy = rc.top + rc.height/2;
-                                return cx >= r.right - 150 && cx <= r.right + 15 && cy >= r.top - 15 && cy <= r.top + 60;
-                            });
-                            if(btns.length > 0) {
-                                btns.sort((a,b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
-                                const br = btns[0].getBoundingClientRect();
-                                return { x: br.left + br.width/2, y: br.top + br.height/2 };
-                            }
-                            return null;
-                        }''')
-                        
-                        if coords:
-                            dots_coords = coords
-                            break
+                        // Filtrar botões visíveis que estão próximos do canto superior direito da imagem
+                        const candidatos = allButtons.filter(btn => {
+                            const rect = btn.getBoundingClientRect();
+                            if (rect.width === 0 || rect.height === 0) return false;
                             
-                    time.sleep(1.5)
+                            const btnCx = rect.left + rect.width / 2;
+                            const btnCy = rect.top + rect.height / 2;
+                            
+                            // Botão deve estar próximo do canto superior direito da imagem
+                            const dentroX = btnCx >= (imgBox.right - 200) && btnCx <= (imgBox.right + 30);
+                            const dentroY = btnCy >= (imgBox.y - 20) && btnCy <= (imgBox.y + 100);
+                            
+                            return dentroX && dentroY;
+                        });
+                        
+                        if (!candidatos.length) return null;
+                        
+                        // Pegar o botão mais à direita (provavelmente o de 3 pontos)
+                        candidatos.sort((a, b) => b.getBoundingClientRect().left - a.getBoundingClientRect().left);
+                        const btn = candidatos[0];
+                        const rect = btn.getBoundingClientRect();
+                        return {
+                            x: rect.left + rect.width / 2,
+                            y: rect.top + rect.height / 2
+                        };
+                    }''', img_box)
                     
+                    if coords:
+                        dots_coords = coords
+                        print(f"✅ Botão de 3 pontos encontrado em tentativa {tentativa_dots + 1}!")
+                        break
+                    
+                    if tentativa_dots % 5 == 4:
+                        print(f"Tentativa {tentativa_dots + 1}/45 - Botão ainda não visível, continuando hover...")
+                    
+                    time.sleep(2.0)
+                
                 if not dots_coords:
-                    raise Exception("Timeout 120s: Botão de opções (3 pontos) não apareceu. A imagem pode não ter terminado de gerar.")
-                    
-                page.screenshot(path=os.path.join(output_dir, f"debug_1_hover_success_{idx}.png"))
-                    
+                    page.screenshot(path=os.path.join(output_dir, f"debug_sem_botao_{idx}.png"))
+                    raise Exception("Timeout 90s: Botão de opções (3 pontos) não apareceu após hover contínuo.")
+                
+                page.screenshot(path=os.path.join(output_dir, f"debug_3_hover_ok_{idx}.png"))
+                
+                # Clicar no botão de 3 pontos
+                print("Clicando no botão de 3 pontos (opções)...")
                 page.mouse.click(dots_coords['x'], dots_coords['y'])
                 time.sleep(1.5)
-                page.screenshot(path=os.path.join(output_dir, f"debug_2_dots_{idx}.png"))
                 
-                # 3. Encontrar menu "Baixar"
+                page.screenshot(path=os.path.join(output_dir, f"debug_4_menu_aberto_{idx}.png"))
+                
+                # ─── ENCONTRAR E CLICAR EM "BAIXAR" ─────────────────────────────────────
+                print("Procurando item 'Baixar' no menu...")
                 baixar_coords = page.evaluate('''() => {
-                    const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
-                        const t = (el.textContent||'').toLowerCase();
-                        const br = el.getBoundingClientRect();
-                        return (t.includes('baixar') || t.includes('download')) && br.width > 0 && br.height > 0;
+                    const items = Array.from(document.querySelectorAll(
+                        'li, [role="menuitem"], [role="option"], .mat-mdc-menu-item, button'
+                    )).filter(el => {
+                        const t = (el.textContent || '').toLowerCase().trim();
+                        const rect = el.getBoundingClientRect();
+                        return (t.includes('baixar') || t === 'download') 
+                            && rect.width > 0 
+                            && rect.height > 0;
                     });
-                    if(!items.length) return null;
-                    const br = items[items.length - 1].getBoundingClientRect(); // Pega o último renderizado (mais recente na tela)
-                    return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                    if (!items.length) return null;
+                    // Pega o último renderizado (mais recente/visível)
+                    const rect = items[items.length - 1].getBoundingClientRect();
+                    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
                 }''')
                 
                 if not baixar_coords:
-                    raise Exception("Item de menu 'Baixar' não encontrado visível.")
-                    
-                page.mouse.move(baixar_coords['x'], baixar_coords['y'])
-                time.sleep(2.0)
-                page.screenshot(path=os.path.join(output_dir, f"debug_3_baixar_{idx}.png"))
+                    page.screenshot(path=os.path.join(output_dir, f"debug_sem_baixar_{idx}.png"))
+                    raise Exception("Item de menu 'Baixar' não encontrado no menu de opções.")
                 
-                # 4. Encontrar botão "2K"
+                print(f"'Baixar' encontrado em x={baixar_coords['x']:.0f}, y={baixar_coords['y']:.0f}")
+                
+                # Hover no "Baixar" para abrir submenu de qualidade
+                page.mouse.move(baixar_coords['x'], baixar_coords['y'])
+                time.sleep(2.5)  # Aguarda submenu aparecer
+                
+                page.screenshot(path=os.path.join(output_dir, f"debug_5_submenu_{idx}.png"))
+                
+                # ─── ENCONTRAR E CLICAR EM "2K" ──────────────────────────────────────────
+                print("Procurando opção '2K' no submenu...")
                 k2_coords = page.evaluate('''() => {
-                    const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
-                        const br = el.getBoundingClientRect();
-                        return (el.textContent||'').toLowerCase().includes('2k') && br.width > 0 && br.height > 0;
+                    const items = Array.from(document.querySelectorAll(
+                        'li, [role="menuitem"], [role="option"], .mat-mdc-menu-item, button'
+                    )).filter(el => {
+                        const t = (el.textContent || '').trim();
+                        const rect = el.getBoundingClientRect();
+                        // Busca exata por "2K" (case insensitive) no texto
+                        return /2k/i.test(t) 
+                            && rect.width > 0 
+                            && rect.height > 0;
                     });
-                    if(!items.length) return null;
-                    // Tenta pegar o último (mais recente), se falhar podemos mudar pra [0]
-                    const br = items[items.length - 1].getBoundingClientRect();
-                    return { x: br.left + br.width/2, y: br.top + br.height/2 };
+                    if (!items.length) return null;
+                    const rect = items[items.length - 1].getBoundingClientRect();
+                    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
                 }''')
                 
                 if not k2_coords:
-                    raise Exception("Botão '2K' não encontrado no submenu.")
-                    
-                print("Iniciando interceptação oficial do download...")
-                update_status(90, "Baixando versão em Altíssima Qualidade (2K)...")
-                try:
-                    # Garantir que o submenu renderizou completamente
-                    time.sleep(1.5)
-                    
-                    download_success = False
-                    for tentativa_dl in range(3):
-                        try:
-                            print(f"Tentativa {tentativa_dl + 1} de interceptar o download...")
-                            # Reduzi o timeout individual para 60s, pois se for falhar, que tente novamente rápido
-                            with page.expect_download(timeout=60000) as download_info:
-                                # Fallback de segurança: Clicar via JS (método da extensão que é mais confiável)
-                                page.evaluate('''() => {
-                                    const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
-                                        const br = el.getBoundingClientRect();
-                                        return (el.textContent||'').toLowerCase().includes('2k') && br.width > 0 && br.height > 0;
-                                    });
-                                    if(items.length) {
-                                        items[items.length - 1].click();
-                                    }
-                                }''')
-                                
-                                time.sleep(1.0)
-                                page.screenshot(path=os.path.join(output_dir, f"debug_4_clicked_2k_{idx}_tentativa_{tentativa_dl + 1}.png"))
-                                
-                            download = download_info.value
-                            filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
-                            file_path = os.path.join(output_dir, filename)
-                            download.save_as(file_path)
-                            print(f"Sucesso: Imagem 2K salva em {file_path}")
-                            
-                            # Enviar para o Telegram via bot
-                            send_to_telegram(file_path, f"🎨 **Prompt:** {prompt}")
-                            sucessos += 1
-                            download_success = True
-                            break # Sai do loop porque deu certo
-                            
-                        except Exception as e:
-                            print(f"Erro na tentativa {tentativa_dl + 1} de download: {e}")
-                            if tentativa_dl < 2: # Se ainda tem tentativas, tenta reabrir o menu
-                                print("Tentando reabrir o menu de opções...")
-                                try:
-                                    page.mouse.click(dots_coords['x'], dots_coords['y'])
-                                    time.sleep(1.0)
-                                    page.mouse.move(baixar_coords['x'], baixar_coords['y'])
-                                    time.sleep(2.0)
-                                except Exception as err:
-                                    print(f"Erro ao tentar reabrir o menu: {err}")
-                    
-                    if not download_success:
-                        page.screenshot(path=os.path.join(output_dir, f"debug_5_timeout_{idx}.png"))
-                        raise Exception("Falha ao interceptar download 2K após 3 tentativas completas.")
+                    page.screenshot(path=os.path.join(output_dir, f"debug_sem_2k_{idx}.png"))
+                    raise Exception("Opção '2K' não encontrada no submenu de qualidade.")
+                
+                print(f"'2K' encontrado em x={k2_coords['x']:.0f}, y={k2_coords['y']:.0f}")
+                
+                update_status(90, "Baixando versão 2K (Alta Qualidade)...")
+                
+                # ─── INTERCEPTAR DOWNLOAD ────────────────────────────────────────────────
+                download_success = False
+                
+                for tentativa_dl in range(3):
+                    try:
+                        print(f"Tentativa {tentativa_dl + 1}/3 de download 2K...")
+                        time.sleep(1.0)
                         
-                    
+                        with page.expect_download(timeout=90000) as download_info:
+                            # Clicar no "2K" via JavaScript para maior confiabilidade
+                            page.evaluate('''() => {
+                                const items = Array.from(document.querySelectorAll(
+                                    'li, [role="menuitem"], [role="option"], .mat-mdc-menu-item, button'
+                                )).filter(el => {
+                                    const t = (el.textContent || '').trim();
+                                    const rect = el.getBoundingClientRect();
+                                    return /2k/i.test(t) && rect.width > 0 && rect.height > 0;
+                                });
+                                if (items.length) {
+                                    items[items.length - 1].click();
+                                }
+                            }''')
+                            time.sleep(2.0)
+                        
+                        download = download_info.value
+                        filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
+                        file_path = os.path.join(output_dir, filename)
+                        download.save_as(file_path)
+                        
+                        print(f"✅ Imagem 2K salva com sucesso: {file_path}")
+                        send_to_telegram(file_path, f"🎨 *Prompt:* {prompt}")
+                        sucessos += 1
+                        download_success = True
+                        break
+                        
+                    except Exception as dl_err:
+                        print(f"❌ Falha na tentativa {tentativa_dl + 1}: {dl_err}")
+                        
+                        if tentativa_dl < 2:
+                            print("Tentando reabrir o menu de opções...")
+                            try:
+                                # Pressiona Escape para fechar qualquer menu aberto
+                                page.keyboard.press('Escape')
+                                time.sleep(0.5)
+                                
+                                # Refaz o hover na imagem para reaparecer os botões
+                                page.mouse.move(center_x, center_y - 30)
+                                time.sleep(0.3)
+                                page.mouse.move(center_x, center_y)
+                                time.sleep(1.0)
+                                
+                                # Clica novamente nos 3 pontos
+                                page.mouse.click(dots_coords['x'], dots_coords['y'])
+                                time.sleep(1.5)
+                                
+                                # Hover em "Baixar" novamente
+                                page.mouse.move(baixar_coords['x'], baixar_coords['y'])
+                                time.sleep(2.5)
+                                
+                            except Exception as reopen_err:
+                                print(f"Erro ao reabrir menu: {reopen_err}")
+                
+                if not download_success:
+                    page.screenshot(path=os.path.join(output_dir, f"debug_falha_download_{idx}.png"))
+                    raise Exception("Falha ao interceptar download 2K após 3 tentativas.")
+                
+                update_status(100, "✅ Imagem enviada com sucesso!")
+                print(f"✅ Prompt {idx + 1} concluído com sucesso!")
+                
             except Exception as e:
-                print(f"Erro durante o processamento do prompt '{prompt}': {e}")
+                print(f"❌ Erro no prompt '{prompt}': {e}")
                 
-                # Salvar log/screenshot do erro
-                error_path = os.path.join(output_dir, f"error_{idx}.png")
-                page.screenshot(path=error_path)
-                print(f"Screenshot de erro salvo em {error_path}")
-                send_to_telegram(error_path, f"🚨 **Erro no bot!** {e}\nVeja a última tela:")
+                try:
+                    error_path = os.path.join(output_dir, f"error_{idx}.png")
+                    page.screenshot(path=error_path)
+                    print(f"Screenshot de erro salvo: {error_path}")
+                    send_to_telegram(error_path, f"🚨 *Erro no bot!*\n{e}\nVeja a tela:")
+                except Exception as screen_err:
+                    print(f"Erro ao salvar screenshot: {screen_err}")
+                
                 falhas += 1
-                
-            # Rate Limit entre gerações
+            
+            # Rate Limit entre gerações (exceto depois do último)
             if idx < len(prompts) - 1:
-                delay = random.uniform(15, 20)
-                print(f"Rate Limit: Aguardando {delay:.2f}s para a próxima geração...")
+                delay = random.uniform(15, 25)
+                print(f"\n⏸️ Rate Limit: Aguardando {delay:.1f}s antes da próxima geração...")
                 time.sleep(delay)
 
-        print("Finalizado o processamento de todos os prompts.")
-        if 'status_msg_id' in locals():
-            msg_fim = f"✅ *Processo Concluído!*\n\n📊 *Resumo:*\n✔️ Sucessos: {sucessos}\n❌ Falhas: {falhas}\nTotal de prompts recebidos: {len(prompts)}"
-            edit_status_message(status_msg_id, msg_fim)
+        print(f"\n{'='*60}")
+        print("✅ Processamento concluído!")
+        print(f"📊 Sucessos: {sucessos} | Falhas: {falhas} | Total: {len(prompts)}")
+        print(f"{'='*60}")
+        
+        msg_fim = (
+            f"✅ *Processo Concluído!*\n\n"
+            f"📊 *Resumo:*\n"
+            f"✔️ Sucessos: {sucessos}\n"
+            f"❌ Falhas: {falhas}\n"
+            f"📝 Total de prompts: {len(prompts)}"
+        )
+        edit_status_message(status_msg_id, msg_fim)
+        
         context.close()
+        browser.close()
 
 if __name__ == "__main__":
     main()

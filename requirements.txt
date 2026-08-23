@@ -1,5 +1,4 @@
 playwright
-playwright-stealth
 requests
 pyTelegramBotAPI
 python-dotenv
