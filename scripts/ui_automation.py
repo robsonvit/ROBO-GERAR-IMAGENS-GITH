@@ -366,9 +366,12 @@ def main():
                 # ─── ENCONTRAR E CLICAR EM "BAIXAR" ─────────────────────────────────────
                 print("Procurando item 'Baixar' no menu...")
                 
-                # Usar os locators do Playwright é mais seguro que calcular x,y no JS
+                # ─── ENCONTRAR E CLICAR EM "BAIXAR" ─────────────────────────────────────
+                print("Procurando item 'Baixar' no menu...")
+                
                 try:
-                    baixar_item = page.locator("text=/baixar|download/i").locator("visible=true").last
+                    import re
+                    baixar_item = page.locator('.mat-mdc-menu-item, [role="menuitem"], li, button').filter(has_text=re.compile(r"baixar|download", re.IGNORECASE)).locator("visible=true").last
                     baixar_item.wait_for(state='visible', timeout=10000)
                     baixar_item.hover()
                     time.sleep(2.5)  # Aguarda submenu aparecer
@@ -381,7 +384,7 @@ def main():
                 # ─── ENCONTRAR OPÇÃO "2K" ──────────────────────────────────────────
                 print("Procurando opção '2K' no submenu...")
                 try:
-                    k2_item = page.locator("text=/2K/i").locator("visible=true").last
+                    k2_item = page.locator('.mat-mdc-menu-item, [role="menuitem"], li, button').filter(has_text=re.compile(r"2K", re.IGNORECASE)).locator("visible=true").last
                     k2_item.wait_for(state='visible', timeout=10000)
                 except Exception as e:
                     page.screenshot(path=os.path.join(output_dir, f"debug_sem_2k_{idx}.png"))
@@ -398,7 +401,7 @@ def main():
                         time.sleep(1.0)
                         
                         with page.expect_download(timeout=90000) as download_info:
-                            # Clicar nativamente pelo Playwright
+                            # Clicar nativamente no container do menu
                             k2_item.click(force=True)
                         
                         download = download_info.value
@@ -430,11 +433,11 @@ def main():
                                 time.sleep(1.5)
                                 
                                 # Buscar novamente os locators após reabrir
-                                baixar_item = page.locator("text=/baixar|download/i").locator("visible=true").last
+                                baixar_item = page.locator('.mat-mdc-menu-item, [role="menuitem"], li, button').filter(has_text=re.compile(r"baixar|download", re.IGNORECASE)).locator("visible=true").last
                                 baixar_item.hover()
                                 time.sleep(2.5)
                                 
-                                k2_item = page.locator("text=/2K/i").locator("visible=true").last
+                                k2_item = page.locator('.mat-mdc-menu-item, [role="menuitem"], li, button').filter(has_text=re.compile(r"2K", re.IGNORECASE)).locator("visible=true").last
                                 
                             except Exception as reopen_err:
                                 print(f"Erro ao reabrir menu: {reopen_err}")
