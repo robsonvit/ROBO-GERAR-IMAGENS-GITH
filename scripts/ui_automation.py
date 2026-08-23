@@ -112,25 +112,37 @@ def main():
     with sync_playwright() as p:
         print("Iniciando navegador headless...")
         
-        browser = p.chromium.launch(
+        # launch_persistent_context é mais robusto para manter sessão do Google
+        context = p.chromium.launch_persistent_context(
+            user_data_dir="/tmp/playwright_user_data",
             headless=False,
-            args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
-        )
-        
-        context = browser.new_context(
             accept_downloads=True,
+            args=['--no-sandbox', '--disable-dev-shm-usage'],
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             viewport={'width': 1920, 'height': 1080}
         )
         
-        page = context.new_page()
+        page = context.pages[0] if context.pages else context.new_page()
         
-        # Injetar cookies ANTES de navegar
+        # Injetar cookies de autenticação do Google
         print("Injetando cookies de autenticação do Google...")
-        # Primeiro navega para o domínio correto para que os cookies sejam aceitos
-        page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded', timeout=60000)
-        time.sleep(3)
         context.add_cookies(cookies)
+        
+        # Navegar para o site e verificar autenticação
+        print("Verificando autenticação...")
+        page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded', timeout=60000)
+        time.sleep(4)
+        
+        # Verificar se foi redirecionado para login
+        current_url = page.url
+        if 'accounts.google.com' in current_url or 'signin' in current_url.lower():
+            print(f"⚠️ AVISO: Redirecionado para login! URL atual: {current_url}")
+            print("Os cookies podem ter expirado. Tentando continuar mesmo assim...")
+            send_status_message("⚠️ *Aviso:* Cookies de autenticação expirados! Renove o AUTH_SESSION_JSON.")
+            context.close()
+            return
+        
+        print(f"✅ Autenticado com sucesso! URL: {current_url}")
         
         sucessos = 0
         falhas = 0
@@ -496,7 +508,6 @@ def main():
         edit_status_message(status_msg_id, msg_fim)
         
         context.close()
-        browser.close()
 
 if __name__ == "__main__":
     main()
