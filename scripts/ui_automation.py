@@ -170,33 +170,47 @@ def main():
             try:
                 update_status(5, "Abrindo laboratório de imagens...")
                 
-                # CRÍTICO: Navega para a home a cada prompt para garantir tela limpa
-                print("Navegando para a home do Google Labs Flow...")
-                page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded', timeout=60000)
-                time.sleep(random.uniform(4, 6))
-                
-                # Salva screenshot inicial para debug
-                page.screenshot(path=os.path.join(output_dir, f"debug_0_inicial_{idx}.png"))
-                
-                # Tentar clicar em "Novo projeto" para garantir tela limpa
-                print("Procurando botão '+ Novo projeto'...")
+                # ESTRATÉGIA: Usar botão 'Novo Projeto' para limpar a tela
+                # SEM navegar com goto() a cada prompt — isso causa logout!
+                print("Procurando botão '+ Novo projeto' para limpar a tela...")
+                btn_clicado = False
                 try:
                     btn_novo = page.locator("text=/Novo projeto/i").first
                     if btn_novo.is_visible(timeout=8000):
                         btn_novo.click()
                         print("✅ Botão '+ Novo projeto' clicado!")
                         time.sleep(random.uniform(3.0, 5.0))
-                    else:
-                        print("Botão 'Novo projeto' não visível, continuando...")
-                except Exception as e:
-                    print(f"Botão 'Novo projeto' não encontrado: {e}")
+                        btn_clicado = True
+                except Exception:
+                    pass
+                
+                # Se não encontrou o botão, tenta recarregar a página
+                if not btn_clicado:
+                    print("Botão não encontrado, recarregando página...")
+                    page.goto('https://labs.google/fx/pt/tools/flow/', wait_until='domcontentloaded', timeout=60000)
+                    time.sleep(random.uniform(4, 6))
+                    # Verificar autenticação após reload
+                    if 'accounts.google.com' in page.url or 'signin' in page.url.lower():
+                        raise Exception(f"Redirecionado para login após reload! URL: {page.url}")
+                    # Tentar botão de novo
+                    try:
+                        btn_novo2 = page.locator("text=/Novo projeto/i").first
+                        if btn_novo2.is_visible(timeout=5000):
+                            btn_novo2.click()
+                            print("✅ Botão '+ Novo projeto' clicado após reload!")
+                            time.sleep(random.uniform(3.0, 5.0))
+                    except Exception:
+                        print("Continuando sem clicar no botão...")
+                
+                # Salva screenshot para debug
+                page.screenshot(path=os.path.join(output_dir, f"debug_0_inicial_{idx}.png"))
                 
                 update_status(15, "Aguardando campo de prompt...")
                 
                 # Localiza o editor do Google Labs
                 print("Aguardando editor de prompt...")
                 input_locator = page.locator('[data-slate-editor="true"][contenteditable="true"]').first
-                input_locator.wait_for(state='visible', timeout=20000)
+                input_locator.wait_for(state='visible', timeout=30000)
                 
                 # Contar imagens ANTES de digitar o prompt (para detectar quando nova imagem aparecer)
                 old_count = page.locator('img[src*="getMediaUrlRedirect"], img[src^="blob:"]').count()
