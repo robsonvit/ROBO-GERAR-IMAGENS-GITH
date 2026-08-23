@@ -428,19 +428,8 @@ def main():
                         time.sleep(1.0)
                         
                         with page.expect_download(timeout=90000) as download_info:
-                            # Clicar no "2K" via JavaScript para maior confiabilidade
-                            page.evaluate('''() => {
-                                const items = Array.from(document.querySelectorAll(
-                                    'li, [role="menuitem"], [role="option"], .mat-mdc-menu-item, button'
-                                )).filter(el => {
-                                    const t = (el.textContent || '').trim();
-                                    const rect = el.getBoundingClientRect();
-                                    return /2k/i.test(t) && rect.width > 0 && rect.height > 0;
-                                });
-                                if (items.length) {
-                                    items[items.length - 1].click();
-                                }
-                            }''')
+                            # Usar clique real do mouse ao invés de JS para garantir que o framework capture o evento
+                            page.mouse.click(k2_coords['x'], k2_coords['y'])
                             time.sleep(2.0)
                         
                         download = download_info.value
