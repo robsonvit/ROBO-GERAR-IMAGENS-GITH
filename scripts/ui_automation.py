@@ -365,57 +365,27 @@ def main():
                 
                 # ─── ENCONTRAR E CLICAR EM "BAIXAR" ─────────────────────────────────────
                 print("Procurando item 'Baixar' no menu...")
-                baixar_coords = page.evaluate('''() => {
-                    const items = Array.from(document.querySelectorAll(
-                        'li, [role="menuitem"], [role="option"], .mat-mdc-menu-item, button'
-                    )).filter(el => {
-                        const t = (el.textContent || '').toLowerCase().trim();
-                        const rect = el.getBoundingClientRect();
-                        return (t.includes('baixar') || t === 'download') 
-                            && rect.width > 0 
-                            && rect.height > 0;
-                    });
-                    if (!items.length) return null;
-                    // Pega o último renderizado (mais recente/visível)
-                    const rect = items[items.length - 1].getBoundingClientRect();
-                    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-                }''')
                 
-                if not baixar_coords:
+                # Usar os locators do Playwright é mais seguro que calcular x,y no JS
+                try:
+                    baixar_item = page.locator("text=/baixar|download/i").locator("visible=true").last
+                    baixar_item.wait_for(state='visible', timeout=10000)
+                    baixar_item.hover()
+                    time.sleep(2.5)  # Aguarda submenu aparecer
+                except Exception as e:
                     page.screenshot(path=os.path.join(output_dir, f"debug_sem_baixar_{idx}.png"))
-                    raise Exception("Item de menu 'Baixar' não encontrado no menu de opções.")
-                
-                print(f"'Baixar' encontrado em x={baixar_coords['x']:.0f}, y={baixar_coords['y']:.0f}")
-                
-                # Hover no "Baixar" para abrir submenu de qualidade
-                page.mouse.move(baixar_coords['x'], baixar_coords['y'])
-                time.sleep(2.5)  # Aguarda submenu aparecer
+                    raise Exception(f"Item de menu 'Baixar' não encontrado no menu de opções: {e}")
                 
                 page.screenshot(path=os.path.join(output_dir, f"debug_5_submenu_{idx}.png"))
                 
-                # ─── ENCONTRAR E CLICAR EM "2K" ──────────────────────────────────────────
+                # ─── ENCONTRAR OPÇÃO "2K" ──────────────────────────────────────────
                 print("Procurando opção '2K' no submenu...")
-                k2_coords = page.evaluate('''() => {
-                    const items = Array.from(document.querySelectorAll(
-                        'li, [role="menuitem"], [role="option"], .mat-mdc-menu-item, button'
-                    )).filter(el => {
-                        const t = (el.textContent || '').trim();
-                        const rect = el.getBoundingClientRect();
-                        // Busca exata por "2K" (case insensitive) no texto
-                        return /2k/i.test(t) 
-                            && rect.width > 0 
-                            && rect.height > 0;
-                    });
-                    if (!items.length) return null;
-                    const rect = items[items.length - 1].getBoundingClientRect();
-                    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-                }''')
-                
-                if not k2_coords:
+                try:
+                    k2_item = page.locator("text=/2K/i").locator("visible=true").last
+                    k2_item.wait_for(state='visible', timeout=10000)
+                except Exception as e:
                     page.screenshot(path=os.path.join(output_dir, f"debug_sem_2k_{idx}.png"))
-                    raise Exception("Opção '2K' não encontrada no submenu de qualidade.")
-                
-                print(f"'2K' encontrado em x={k2_coords['x']:.0f}, y={k2_coords['y']:.0f}")
+                    raise Exception(f"Opção '2K' não encontrada no submenu de qualidade: {e}")
                 
                 update_status(90, "Baixando versão 2K (Alta Qualidade)...")
                 
@@ -428,9 +398,8 @@ def main():
                         time.sleep(1.0)
                         
                         with page.expect_download(timeout=90000) as download_info:
-                            # Usar clique real do mouse ao invés de JS para garantir que o framework capture o evento
-                            page.mouse.click(k2_coords['x'], k2_coords['y'])
-                            time.sleep(2.0)
+                            # Clicar nativamente pelo Playwright
+                            k2_item.click(force=True)
                         
                         download = download_info.value
                         filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
@@ -449,23 +418,23 @@ def main():
                         if tentativa_dl < 2:
                             print("Tentando reabrir o menu de opções...")
                             try:
-                                # Pressiona Escape para fechar qualquer menu aberto
                                 page.keyboard.press('Escape')
                                 time.sleep(0.5)
                                 
-                                # Refaz o hover na imagem para reaparecer os botões
                                 page.mouse.move(center_x, center_y - 30)
                                 time.sleep(0.3)
                                 page.mouse.move(center_x, center_y)
                                 time.sleep(1.0)
                                 
-                                # Clica novamente nos 3 pontos
                                 page.mouse.click(dots_coords['x'], dots_coords['y'])
                                 time.sleep(1.5)
                                 
-                                # Hover em "Baixar" novamente
-                                page.mouse.move(baixar_coords['x'], baixar_coords['y'])
+                                # Buscar novamente os locators após reabrir
+                                baixar_item = page.locator("text=/baixar|download/i").locator("visible=true").last
+                                baixar_item.hover()
                                 time.sleep(2.5)
+                                
+                                k2_item = page.locator("text=/2K/i").locator("visible=true").last
                                 
                             except Exception as reopen_err:
                                 print(f"Erro ao reabrir menu: {reopen_err}")
