@@ -390,27 +390,41 @@ def main():
                     page.screenshot(path=os.path.join(output_dir, f"debug_sem_2k_{idx}.png"))
                     raise Exception(f"Opção '2K' não encontrada no submenu de qualidade: {e}")
                 
-                update_status(90, "Baixando versão 2K (Alta Qualidade)...")
-                
-                # ─── INTERCEPTAR DOWNLOAD ────────────────────────────────────────────────
+                # ─── INTERCEPTAR DOWNLOAD (COM FALLBACK PARA 1K) ─────────────────────────
                 download_success = False
                 
                 for tentativa_dl in range(3):
                     try:
-                        print(f"Tentativa {tentativa_dl + 1}/3 de download 2K...")
+                        # Nas duas primeiras tentativas usa 2K, na última faz fallback para 1K
+                        is_fallback_1k = (tentativa_dl == 2)
+                        qualidade_alvo = "1K" if is_fallback_1k else "2K"
+                        
+                        print(f"Tentativa {tentativa_dl + 1}/3 de download ({qualidade_alvo})...")
                         time.sleep(1.0)
+                        
+                        # Procurar o botão da qualidade específica
+                        try:
+                            qualidade_item = page.locator('.mat-mdc-menu-item, [role="menuitem"], li, button').filter(has_text=re.compile(qualidade_alvo, re.IGNORECASE)).locator("visible=true").last
+                            qualidade_item.wait_for(state='visible', timeout=10000)
+                        except Exception as e:
+                            print(f"Aviso: Opção '{qualidade_alvo}' não encontrada. Erro: {e}")
+                            continue # Tenta de novo no loop
+                        
+                        if is_fallback_1k:
+                            update_status(90, "Falha no 2K. Baixando versão 1K (Tamanho Original)...")
                         
                         with page.expect_download(timeout=90000) as download_info:
                             # Clicar nativamente no container do menu
-                            k2_item.click(force=True)
+                            qualidade_item.click(force=True)
                         
                         download = download_info.value
-                        filename = f"geracao_2k_{idx + 1}_{int(time.time())}.png"
+                        prefixo = "geracao_1k" if is_fallback_1k else "geracao_2k"
+                        filename = f"{prefixo}_{idx + 1}_{int(time.time())}.png"
                         file_path = os.path.join(output_dir, filename)
                         download.save_as(file_path)
                         
-                        print(f"✅ Imagem 2K salva com sucesso: {file_path}")
-                        send_to_telegram(file_path, f"🎨 *Prompt:* {prompt}")
+                        print(f"✅ Imagem {qualidade_alvo} salva com sucesso: {file_path}")
+                        send_to_telegram(file_path, f"🎨 *Prompt:* {prompt}\n\n⚠️ *(Baixado em {qualidade_alvo})*")
                         sucessos += 1
                         download_success = True
                         break
@@ -432,19 +446,17 @@ def main():
                                 page.mouse.click(dots_coords['x'], dots_coords['y'])
                                 time.sleep(1.5)
                                 
-                                # Buscar novamente os locators após reabrir
+                                # Buscar novamente o Baixar
                                 baixar_item = page.locator('.mat-mdc-menu-item, [role="menuitem"], li, button').filter(has_text=re.compile(r"baixar|download", re.IGNORECASE)).locator("visible=true").last
                                 baixar_item.hover()
                                 time.sleep(2.5)
-                                
-                                k2_item = page.locator('.mat-mdc-menu-item, [role="menuitem"], li, button').filter(has_text=re.compile(r"2K", re.IGNORECASE)).locator("visible=true").last
                                 
                             except Exception as reopen_err:
                                 print(f"Erro ao reabrir menu: {reopen_err}")
                 
                 if not download_success:
                     page.screenshot(path=os.path.join(output_dir, f"debug_falha_download_{idx}.png"))
-                    raise Exception("Falha ao interceptar download 2K após 3 tentativas.")
+                    raise Exception(f"Falha ao interceptar download após 3 tentativas.")
                 
                 update_status(100, "✅ Imagem enviada com sucesso!")
                 print(f"✅ Prompt {idx + 1} concluído com sucesso!")
