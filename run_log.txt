@@ -1,0 +1,278 @@
+run-automation	Set up job	﻿2026-08-21T17:41:14.4542360Z Current runner version: '2.336.0'
+run-automation	Set up job	2026-08-21T17:41:14.4570519Z ##***group***Runner Image Provisioner
+run-automation	Set up job	2026-08-21T17:41:14.4572187Z Hosted Compute Agent
+run-automation	Set up job	2026-08-21T17:41:14.4573493Z Version: 20260729.566
+run-automation	Set up job	2026-08-21T17:41:14.4574852Z Commit: cf7153fe6e25b664e8693c24944bf2b00355d109
+run-automation	Set up job	2026-08-21T17:41:14.4576267Z Build Date: 2026-07-29T19:17:02Z
+run-automation	Set up job	2026-08-21T17:41:14.4577755Z Worker ID: ***aa15afa1-c621-4c51-931b-a371e5f92bc7***
+run-automation	Set up job	2026-08-21T17:41:14.4579621Z Azure Region: westus2
+run-automation	Set up job	2026-08-21T17:41:14.4581106Z ##***endgroup***
+run-automation	Set up job	2026-08-21T17:41:14.4583510Z ##***group***Operating System
+run-automation	Set up job	2026-08-21T17:41:14.4584840Z Ubuntu
+run-automation	Set up job	2026-08-21T17:41:14.4586033Z 24.04.4
+run-automation	Set up job	2026-08-21T17:41:14.4587204Z LTS
+run-automation	Set up job	2026-08-21T17:41:14.4588384Z ##***endgroup***
+run-automation	Set up job	2026-08-21T17:41:14.4589918Z ##***group***Runner Image
+run-automation	Set up job	2026-08-21T17:41:14.4591239Z Image: ubuntu-24.04
+run-automation	Set up job	2026-08-21T17:41:14.4592534Z Version: 20260816.277.1
+run-automation	Set up job	2026-08-21T17:41:14.4594308Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260816.277/images/ubuntu/Ubuntu2404-Readme.md
+run-automation	Set up job	2026-08-21T17:41:14.4596842Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260816.277
+run-automation	Set up job	2026-08-21T17:41:14.4598531Z ##***endgroup***
+run-automation	Set up job	2026-08-21T17:41:14.4601249Z ##***group***GITHUB_TOKEN Permissions
+run-automation	Set up job	2026-08-21T17:41:14.4604147Z Contents: read
+run-automation	Set up job	2026-08-21T17:41:14.4605441Z Metadata: read
+run-automation	Set up job	2026-08-21T17:41:14.4606614Z Packages: read
+run-automation	Set up job	2026-08-21T17:41:14.4607931Z ##***endgroup***
+run-automation	Set up job	2026-08-21T17:41:14.4610929Z Secret source: Actions
+run-automation	Set up job	2026-08-21T17:41:14.4613116Z Prepare workflow directory
+run-automation	Set up job	2026-08-21T17:41:14.4968501Z Prepare all required actions
+run-automation	Set up job	2026-08-21T17:41:14.5018960Z Getting action download info
+run-automation	Set up job	2026-08-21T17:41:14.8340101Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+run-automation	Set up job	2026-08-21T17:41:14.9813494Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+run-automation	Set up job	2026-08-21T17:41:15.0686996Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+run-automation	Set up job	2026-08-21T17:41:15.3291158Z Complete job name: run-automation
+run-automation	Checkout repository	﻿2026-08-21T17:41:15.4192281Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+run-automation	Checkout repository	2026-08-21T17:41:15.4202533Z ##***group***Run actions/checkout@v4
+run-automation	Checkout repository	2026-08-21T17:41:15.4203786Z with:
+run-automation	Checkout repository	2026-08-21T17:41:15.4204755Z   repository: robsonvit/ROBO-GERAR-IMAGENS-GITH
+run-automation	Checkout repository	2026-08-21T17:41:15.4209967Z   token: ***
+run-automation	Checkout repository	2026-08-21T17:41:15.4210880Z   ssh-strict: true
+run-automation	Checkout repository	2026-08-21T17:41:15.4211771Z   ssh-user: git
+run-automation	Checkout repository	2026-08-21T17:41:15.4212701Z   persist-credentials: true
+run-automation	Checkout repository	2026-08-21T17:41:15.4213628Z   clean: true
+run-automation	Checkout repository	2026-08-21T17:41:15.4214526Z   sparse-checkout-cone-mode: true
+run-automation	Checkout repository	2026-08-21T17:41:15.4215482Z   fetch-depth: 1
+run-automation	Checkout repository	2026-08-21T17:41:15.4216383Z   fetch-tags: false
+run-automation	Checkout repository	2026-08-21T17:41:15.4217312Z   show-progress: true
+run-automation	Checkout repository	2026-08-21T17:41:15.4218231Z   lfs: false
+run-automation	Checkout repository	2026-08-21T17:41:15.4219331Z   submodules: false
+run-automation	Checkout repository	2026-08-21T17:41:15.4220288Z   set-safe-directory: true
+run-automation	Checkout repository	2026-08-21T17:41:15.4221267Z   allow-unsafe-pr-checkout: false
+run-automation	Checkout repository	2026-08-21T17:41:15.4222599Z ##***endgroup***
+run-automation	Checkout repository	2026-08-21T17:41:15.5250833Z Syncing repository: robsonvit/ROBO-GERAR-IMAGENS-GITH
+run-automation	Checkout repository	2026-08-21T17:41:15.5254856Z ##***group***Getting Git version info
+run-automation	Checkout repository	2026-08-21T17:41:15.5257632Z Working directory is '/home/runner/work/ROBO-GERAR-IMAGENS-GITH/ROBO-GERAR-IMAGENS-GITH'
+run-automation	Checkout repository	2026-08-21T17:41:15.5261317Z ***command***/usr/bin/git version
+run-automation	Checkout repository	2026-08-21T17:41:15.5349832Z git version 2.55.0
+run-automation	Checkout repository	2026-08-21T17:41:15.5381059Z ##***endgroup***
+run-automation	Checkout repository	2026-08-21T17:41:15.5402663Z Temporarily overriding HOME='/home/runner/work/_temp/cc556138-9ea6-4a81-8118-21d7cef466c0' before making global git config changes
+run-automation	Checkout repository	2026-08-21T17:41:15.5406932Z Adding repository directory to the temporary git global config as a safe directory
+run-automation	Checkout repository	2026-08-21T17:41:15.5411723Z ***command***/usr/bin/git config --global --add safe.directory /home/runner/work/ROBO-GERAR-IMAGENS-GITH/ROBO-GERAR-IMAGENS-GITH
+run-automation	Checkout repository	2026-08-21T17:41:15.5480400Z Deleting the contents of '/home/runner/work/ROBO-GERAR-IMAGENS-GITH/ROBO-GERAR-IMAGENS-GITH'
+run-automation	Checkout repository	2026-08-21T17:41:15.5485010Z ##***group***Initializing the repository
+run-automation	Checkout repository	2026-08-21T17:41:15.5492178Z ***command***/usr/bin/git init /home/runner/work/ROBO-GERAR-IMAGENS-GITH/ROBO-GERAR-IMAGENS-GITH
+run-automation	Checkout repository	2026-08-21T17:41:15.5610270Z hint: Using 'master' as the name for the initial branch. This default branch name
+run-automation	Checkout repository	2026-08-21T17:41:15.5613433Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+run-automation	Checkout repository	2026-08-21T17:41:15.5621857Z hint: to use in all of your new repositories, which will suppress this warning,
+run-automation	Checkout repository	2026-08-21T17:41:15.5624533Z hint: call:
+run-automation	Checkout repository	2026-08-21T17:41:15.5626429Z hint:
+run-automation	Checkout repository	2026-08-21T17:41:15.5628574Z hint: 	git config --global init.defaultBranch <name>
+run-automation	Checkout repository	2026-08-21T17:41:15.5631534Z hint:
+run-automation	Checkout repository	2026-08-21T17:41:15.5633721Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+run-automation	Checkout repository	2026-08-21T17:41:15.5636649Z hint: 'development'. The just-created branch can be renamed via this command:
+run-automation	Checkout repository	2026-08-21T17:41:15.5639395Z hint:
+run-automation	Checkout repository	2026-08-21T17:41:15.5641663Z hint: 	git branch -m <name>
+run-automation	Checkout repository	2026-08-21T17:41:15.5643698Z hint:
+run-automation	Checkout repository	2026-08-21T17:41:15.5646116Z hint: Disable this message with "git config set advice.defaultBranchName false"
+run-automation	Checkout repository	2026-08-21T17:41:15.5650029Z Initialized empty Git repository in /home/runner/work/ROBO-GERAR-IMAGENS-GITH/ROBO-GERAR-IMAGENS-GITH/.git/
+run-automation	Checkout repository	2026-08-21T17:41:15.5656285Z ***command***/usr/bin/git remote add origin https://github.com/robsonvit/ROBO-GERAR-IMAGENS-GITH
+run-automation	Checkout repository	2026-08-21T17:41:15.5696373Z ##***endgroup***
+run-automation	Checkout repository	2026-08-21T17:41:15.5699879Z ##***group***Disabling automatic garbage collection
+run-automation	Checkout repository	2026-08-21T17:41:15.5710788Z ***command***/usr/bin/git config --local gc.auto 0
+run-automation	Checkout repository	2026-08-21T17:41:15.5761727Z ##***endgroup***
+run-automation	Checkout repository	2026-08-21T17:41:15.5764406Z ##***group***Setting up auth
+run-automation	Checkout repository	2026-08-21T17:41:15.5768985Z ***command***/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+run-automation	Checkout repository	2026-08-21T17:41:15.5806781Z ***command***/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+run-automation	Checkout repository	2026-08-21T17:41:15.6181901Z ***command***/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+run-automation	Checkout repository	2026-08-21T17:41:15.6224521Z ***command***/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+run-automation	Checkout repository	2026-08-21T17:41:15.6458951Z ***command***/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+run-automation	Checkout repository	2026-08-21T17:41:15.6494741Z ***command***/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+run-automation	Checkout repository	2026-08-21T17:41:15.6724443Z ***command***/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+run-automation	Checkout repository	2026-08-21T17:41:15.6763377Z ##***endgroup***
+run-automation	Checkout repository	2026-08-21T17:41:15.6772816Z ##***group***Fetching the repository
+run-automation	Checkout repository	2026-08-21T17:41:15.6774963Z ***command***/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8a452a17c792d0e839de483649b8e66aa72fb22f:refs/remotes/origin/main
+run-automation	Checkout repository	2026-08-21T17:41:16.0698620Z From https://github.com/robsonvit/ROBO-GERAR-IMAGENS-GITH
+run-automation	Checkout repository	2026-08-21T17:41:16.0702718Z  * ***new ref***         8a452a17c792d0e839de483649b8e66aa72fb22f -> origin/main
+run-automation	Checkout repository	2026-08-21T17:41:16.0708837Z ##***endgroup***
+run-automation	Checkout repository	2026-08-21T17:41:16.0712196Z ##***group***Determining the checkout info
+run-automation	Checkout repository	2026-08-21T17:41:16.0715522Z ##***endgroup***
+run-automation	Checkout repository	2026-08-21T17:41:16.0717817Z ***command***/usr/bin/git sparse-checkout disable
+run-automation	Checkout repository	2026-08-21T17:41:16.0770100Z ***command***/usr/bin/git config --local --unset-all extensions.worktreeConfig
+run-automation	Checkout repository	2026-08-21T17:41:16.0804064Z ##***group***Checking out the ref
+run-automation	Checkout repository	2026-08-21T17:41:16.0807967Z ***command***/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+run-automation	Checkout repository	2026-08-21T17:41:16.0870337Z Switched to a new branch 'main'
+run-automation	Checkout repository	2026-08-21T17:41:16.0876178Z branch 'main' set up to track 'origin/main'.
+run-automation	Checkout repository	2026-08-21T17:41:16.0884661Z ##***endgroup***
+run-automation	Checkout repository	2026-08-21T17:41:16.0925041Z ***command***/usr/bin/git log -1 --format=%H
+run-automation	Checkout repository	2026-08-21T17:41:16.0953330Z 8a452a17c792d0e839de483649b8e66aa72fb22f
+run-automation	Set up Python	﻿2026-08-21T17:41:16.1362508Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+run-automation	Set up Python	2026-08-21T17:41:16.1368512Z ##***group***Run actions/setup-python@v5
+run-automation	Set up Python	2026-08-21T17:41:16.1369977Z with:
+run-automation	Set up Python	2026-08-21T17:41:16.1370907Z   python-version: 3.10
+run-automation	Set up Python	2026-08-21T17:41:16.1371993Z   check-latest: false
+run-automation	Set up Python	2026-08-21T17:41:16.1381970Z   token: ***
+run-automation	Set up Python	2026-08-21T17:41:16.1382971Z   update-environment: true
+run-automation	Set up Python	2026-08-21T17:41:16.1384154Z   allow-prereleases: false
+run-automation	Set up Python	2026-08-21T17:41:16.1385302Z   freethreaded: false
+run-automation	Set up Python	2026-08-21T17:41:16.1386353Z ##***endgroup***
+run-automation	Set up Python	2026-08-21T17:41:16.2735995Z ##***group***Installed versions
+run-automation	Set up Python	2026-08-21T17:41:16.2826376Z (node:2190) ***DEP0040*** DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+run-automation	Set up Python	2026-08-21T17:41:16.2832351Z (Use `node --trace-deprecation ...` to show where the warning was created)
+run-automation	Set up Python	2026-08-21T17:41:16.2836595Z Successfully set up CPython (3.10.21)
+run-automation	Set up Python	2026-08-21T17:41:16.2840301Z ##***endgroup***
+run-automation	Install dependencies	﻿2026-08-21T17:41:16.3035915Z ##***group***Run python -m pip install --upgrade pip
+run-automation	Install dependencies	2026-08-21T17:41:16.3037767Z ***36;1mpython -m pip install --upgrade pip***0m
+run-automation	Install dependencies	2026-08-21T17:41:16.3039736Z ***36;1mpip install -r requirements.txt***0m
+run-automation	Install dependencies	2026-08-21T17:41:16.3041281Z ***36;1mplaywright install chromium***0m
+run-automation	Install dependencies	2026-08-21T17:41:16.3146123Z shell: /usr/bin/bash -e ***0***
+run-automation	Install dependencies	2026-08-21T17:41:16.3148788Z env:
+run-automation	Install dependencies	2026-08-21T17:41:16.3151852Z   pythonLocation: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Install dependencies	2026-08-21T17:41:16.3155064Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig
+run-automation	Install dependencies	2026-08-21T17:41:16.3158367Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Install dependencies	2026-08-21T17:41:16.3161219Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Install dependencies	2026-08-21T17:41:16.3164183Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Install dependencies	2026-08-21T17:41:16.3166978Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.10.21/x64/lib
+run-automation	Install dependencies	2026-08-21T17:41:16.3169311Z ##***endgroup***
+run-automation	Install dependencies	2026-08-21T17:41:18.6724442Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.10.21/x64/lib/python3.10/site-packages (26.2.1)
+run-automation	Install dependencies	2026-08-21T17:41:19.8717870Z Collecting playwright (from -r requirements.txt (line 1))
+run-automation	Install dependencies	2026-08-21T17:41:19.9418630Z   Downloading playwright-1.62.0-py3-none-manylinux1_x86_64.whl.metadata (3.3 kB)
+run-automation	Install dependencies	2026-08-21T17:41:19.9616870Z Collecting playwright-stealth (from -r requirements.txt (line 2))
+run-automation	Install dependencies	2026-08-21T17:41:19.9740489Z   Downloading playwright_stealth-2.0.3-py3-none-any.whl.metadata (4.5 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.0115049Z Collecting requests (from -r requirements.txt (line 3))
+run-automation	Install dependencies	2026-08-21T17:41:20.0221894Z   Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.0467215Z Collecting pyee<14,>=13 (from playwright->-r requirements.txt (line 1))
+run-automation	Install dependencies	2026-08-21T17:41:20.0577817Z   Downloading pyee-13.0.1-py3-none-any.whl.metadata (3.0 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.2710231Z Collecting greenlet<4.0.0,>=3.1.1 (from playwright->-r requirements.txt (line 1))
+run-automation	Install dependencies	2026-08-21T17:41:20.2824541Z   Downloading greenlet-3.5.5-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (3.8 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.3101728Z Collecting typing-extensions (from pyee<14,>=13->playwright->-r requirements.txt (line 1))
+run-automation	Install dependencies	2026-08-21T17:41:20.3214215Z   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.4841172Z Collecting charset_normalizer<4,>=2 (from requests->-r requirements.txt (line 3))
+run-automation	Install dependencies	2026-08-21T17:41:20.4955661Z   Downloading charset_normalizer-3.5.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (45 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.5299849Z Collecting idna<4,>=2.5 (from requests->-r requirements.txt (line 3))
+run-automation	Install dependencies	2026-08-21T17:41:20.5407003Z   Downloading idna-3.19-py3-none-any.whl.metadata (9.2 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.5725824Z Collecting urllib3<3,>=1.26 (from requests->-r requirements.txt (line 3))
+run-automation	Install dependencies	2026-08-21T17:41:20.5842808Z   Downloading urllib3-2.7.0-py3-none-any.whl.metadata (6.9 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.6127463Z Collecting certifi>=2023.5.7 (from requests->-r requirements.txt (line 3))
+run-automation	Install dependencies	2026-08-21T17:41:20.6237830Z   Downloading certifi-2026.7.22-py3-none-any.whl.metadata (2.5 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.6396228Z Downloading playwright-1.62.0-py3-none-manylinux1_x86_64.whl (47.7 MB)
+run-automation	Install dependencies	2026-08-21T17:41:20.8676520Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 47.7/47.7 MB 229.1 MB/s  0:00:00
+run-automation	Install dependencies	2026-08-21T17:41:20.8798441Z Downloading greenlet-3.5.5-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (622 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.8857949Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 622.8/622.8 kB 105.5 MB/s  0:00:00
+run-automation	Install dependencies	2026-08-21T17:41:20.8977080Z Downloading pyee-13.0.1-py3-none-any.whl (15 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.9109488Z Downloading playwright_stealth-2.0.3-py3-none-any.whl (34 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.9245487Z Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.9394264Z Downloading charset_normalizer-3.5.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (261 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.9533265Z Downloading idna-3.19-py3-none-any.whl (68 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.9670309Z Downloading urllib3-2.7.0-py3-none-any.whl (131 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.9813554Z Downloading certifi-2026.7.22-py3-none-any.whl (136 kB)
+run-automation	Install dependencies	2026-08-21T17:41:20.9949556Z Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+run-automation	Install dependencies	2026-08-21T17:41:21.1005940Z Installing collected packages: urllib3, typing-extensions, idna, greenlet, charset_normalizer, certifi, requests, pyee, playwright, playwright-stealth
+run-automation	Install dependencies	2026-08-21T17:41:22.1396949Z 
+run-automation	Install dependencies	2026-08-21T17:41:22.1419885Z Successfully installed certifi-2026.7.22 charset_normalizer-3.5.1 greenlet-3.5.5 idna-3.19 playwright-1.62.0 playwright-stealth-2.0.3 pyee-13.0.1 requests-2.34.2 typing-extensions-4.16.0 urllib3-2.7.0
+run-automation	Install dependencies	2026-08-21T17:41:22.5537767Z Downloading Chrome for Testing 151.0.7922.34 (playwright chromium v1234) from https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-linux64.zip
+run-automation	Install dependencies	2026-08-21T17:41:23.5572125Z |                                                                                |   0% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:23.7721649Z |■■■■■■■■                                                                        |  10% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:23.8760405Z |■■■■■■■■■■■■■■■■                                                                |  20% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:23.9627483Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:24.0760521Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:24.1474646Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:24.2401239Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:24.3038252Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:24.4057404Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:24.4852045Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:24.5527099Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 184.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:27.7090253Z Chrome for Testing 151.0.7922.34 (playwright chromium v1234) downloaded to /home/runner/.cache/ms-playwright/chromium-1234
+run-automation	Install dependencies	2026-08-21T17:41:27.7094423Z Downloading FFmpeg (playwright ffmpeg v1011) from https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip
+run-automation	Install dependencies	2026-08-21T17:41:28.6717710Z |                                                                                |   0% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.6877809Z |■■■■■■■■                                                                        |  10% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.6941790Z |■■■■■■■■■■■■■■■■                                                                |  20% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.6998765Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.7053626Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.7087864Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.7111423Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.7149708Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.7182569Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.7184325Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.7204449Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 2.3 MiB
+run-automation	Install dependencies	2026-08-21T17:41:28.7804039Z FFmpeg (playwright ffmpeg v1011) downloaded to /home/runner/.cache/ms-playwright/ffmpeg-1011
+run-automation	Install dependencies	2026-08-21T17:41:28.7807654Z Downloading Chrome Headless Shell 151.0.7922.34 (playwright chromium-headless-shell v1234) from https://cdn.playwright.dev/builds/cft/151.0.7922.34/linux64/chrome-headless-shell-linux64.zip
+run-automation	Install dependencies	2026-08-21T17:41:29.7706012Z |                                                                                |   0% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:29.9468364Z |■■■■■■■■                                                                        |  10% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:30.0401520Z |■■■■■■■■■■■■■■■■                                                                |  20% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:30.1041864Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:30.1505100Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:30.1991643Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:30.2578474Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:30.3021403Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:30.3506732Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:30.4105910Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:30.4627914Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 114.7 MiB
+run-automation	Install dependencies	2026-08-21T17:41:33.0343651Z Chrome Headless Shell 151.0.7922.34 (playwright chromium-headless-shell v1234) downloaded to /home/runner/.cache/ms-playwright/chromium_headless_shell-1234
+run-automation	Run UI Automation	﻿2026-08-21T17:41:33.0626541Z ##***group***Run python scripts/ui_automation.py
+run-automation	Run UI Automation	2026-08-21T17:41:33.0627222Z ***36;1mpython scripts/ui_automation.py***0m
+run-automation	Run UI Automation	2026-08-21T17:41:33.0668395Z shell: /usr/bin/bash -e ***0***
+run-automation	Run UI Automation	2026-08-21T17:41:33.0668899Z env:
+run-automation	Run UI Automation	2026-08-21T17:41:33.0669657Z   pythonLocation: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Run UI Automation	2026-08-21T17:41:33.0670376Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig
+run-automation	Run UI Automation	2026-08-21T17:41:33.0671084Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Run UI Automation	2026-08-21T17:41:33.0671767Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Run UI Automation	2026-08-21T17:41:33.0672419Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Run UI Automation	2026-08-21T17:41:33.0673086Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.10.21/x64/lib
+run-automation	Run UI Automation	2026-08-21T17:41:33.0686218Z   AUTH_SESSION_JSON: ***
+run-automation	Run UI Automation	2026-08-21T17:41:33.0686816Z   TELEGRAM_BOT_TOKEN: ***
+run-automation	Run UI Automation	2026-08-21T17:41:33.0687281Z   TELEGRAM_CHAT_ID: ***
+run-automation	Run UI Automation	2026-08-21T17:41:33.0687942Z   SINGLE_PROMPT: um gato fofo astronauta explorando marte em estilo cyberpunk, hyper realista 8k
+run-automation	Run UI Automation	2026-08-21T17:41:33.0688691Z ##***endgroup***
+run-automation	Run UI Automation	2026-08-21T17:42:14.0402828Z 🤖 Modo Telegram: Executando apenas o prompt enviado -> um gato fofo astronauta explorando marte em estilo cyberpunk, hyper realista 8k
+run-automation	Run UI Automation	2026-08-21T17:42:14.0403790Z Iniciando navegador headless...
+run-automation	Run UI Automation	2026-08-21T17:42:14.0404303Z Navegando para Google Labs Flow...
+run-automation	Run UI Automation	2026-08-21T17:42:14.0404896Z Procurando botão '+ Novo projeto'...
+run-automation	Run UI Automation	2026-08-21T17:42:14.0405431Z ✅ Botão '+ Novo projeto' clicado!
+run-automation	Run UI Automation	2026-08-21T17:42:14.0405742Z 
+run-automation	Run UI Automation	2026-08-21T17:42:14.0405959Z --- Processando prompt 1/1 ---
+run-automation	Run UI Automation	2026-08-21T17:42:14.0406614Z Texto: 'um gato fofo astronauta explorando marte em estilo cyberpunk, hyper realista 8k'
+run-automation	Run UI Automation	2026-08-21T17:42:14.0407628Z Solicitação enviada. Aguardando geração...
+run-automation	Run UI Automation	2026-08-21T17:42:14.0408767Z Formato de src de imagem não suportado para download direto.
+run-automation	Run UI Automation	2026-08-21T17:42:14.0409736Z 
+run-automation	Run UI Automation	2026-08-21T17:42:14.0410161Z Finalizado o processamento de todos os prompts.
+run-automation	Upload Output	﻿2026-08-21T17:42:14.0761921Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+run-automation	Upload Output	2026-08-21T17:42:14.0763576Z ##***group***Run actions/upload-artifact@v4
+run-automation	Upload Output	2026-08-21T17:42:14.0764063Z with:
+run-automation	Upload Output	2026-08-21T17:42:14.0764477Z   name: generated-images
+run-automation	Upload Output	2026-08-21T17:42:14.0765108Z   path: output/
+run-automation	Upload Output	2026-08-21T17:42:14.0765534Z   if-no-files-found: warn
+run-automation	Upload Output	2026-08-21T17:42:14.0765987Z   compression-level: 6
+run-automation	Upload Output	2026-08-21T17:42:14.0766417Z   overwrite: false
+run-automation	Upload Output	2026-08-21T17:42:14.0766848Z   include-hidden-files: false
+run-automation	Upload Output	2026-08-21T17:42:14.0767290Z env:
+run-automation	Upload Output	2026-08-21T17:42:14.0767774Z   pythonLocation: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Upload Output	2026-08-21T17:42:14.0768442Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.10.21/x64/lib/pkgconfig
+run-automation	Upload Output	2026-08-21T17:42:14.0769436Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Upload Output	2026-08-21T17:42:14.0770098Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Upload Output	2026-08-21T17:42:14.0770727Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.10.21/x64
+run-automation	Upload Output	2026-08-21T17:42:14.0771337Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.10.21/x64/lib
+run-automation	Upload Output	2026-08-21T17:42:14.0771883Z ##***endgroup***
+run-automation	Upload Output	2026-08-21T17:42:14.2398352Z (node:2409) ***DEP0040*** DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+run-automation	Upload Output	2026-08-21T17:42:14.2403570Z (Use `node --trace-deprecation ...` to show where the warning was created)
+run-automation	Upload Output	2026-08-21T17:42:14.2491527Z ##***warning***No files were found with the provided path: output/. No artifacts will be uploaded.
+run-automation	Post Set up Python	﻿2026-08-21T17:42:14.2700886Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+run-automation	Post Set up Python	2026-08-21T17:42:14.2702431Z Post job cleanup.
+run-automation	Post Set up Python	2026-08-21T17:42:14.3947967Z (node:2421) ***DEP0040*** DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+run-automation	Post Set up Python	2026-08-21T17:42:14.3949588Z (Use `node --trace-deprecation ...` to show where the warning was created)
+run-automation	Post Checkout repository	﻿2026-08-21T17:42:14.4156745Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+run-automation	Post Checkout repository	2026-08-21T17:42:14.4158264Z Post job cleanup.
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5054121Z ***command***/usr/bin/git version
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5096823Z git version 2.55.0
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5136104Z Temporarily overriding HOME='/home/runner/work/_temp/6da2138f-0e8f-4f3c-9d97-9d72ba37852a' before making global git config changes
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5137933Z Adding repository directory to the temporary git global config as a safe directory
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5142768Z ***command***/usr/bin/git config --global --add safe.directory /home/runner/work/ROBO-GERAR-IMAGENS-GITH/ROBO-GERAR-IMAGENS-GITH
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5181255Z ***command***/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5240753Z ***command***/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5497055Z ***command***/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5526708Z http.https://github.com/.extraheader
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5538657Z ***command***/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5574017Z ***command***/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5840766Z ***command***/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+run-automation	Post Checkout repository	2026-08-21T17:42:14.5879762Z ***command***/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+run-automation	Complete job	﻿2026-08-21T17:42:14.6276613Z Cleaning up orphan processes
+run-automation	Complete job	2026-08-21T17:42:14.6607878Z ##***warning***Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
