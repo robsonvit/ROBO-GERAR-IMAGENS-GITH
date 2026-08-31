@@ -4,56 +4,10 @@ import time
 import random
 import requests
 import re
-import base64
-from nacl import encoding, public
 from playwright.sync_api import sync_playwright
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-def encrypt_secret(public_key: str, secret_value: str) -> str:
-    public_key_obj = public.PublicKey(public_key.encode("utf-8"), encoding.Base64Encoder())
-    sealed_box = public.SealedBox(public_key_obj)
-    encrypted = sealed_box.encrypt(secret_value.encode("utf-8"))
-    return base64.b64encode(encrypted).decode("utf-8")
-
-def update_github_secret(secret_name, secret_value):
-    repo = os.environ.get('GITHUB_REPO')
-    token = os.environ.get('GITHUB_TOKEN')
-    
-    if not repo or not token:
-        print("GITHUB_REPO ou GITHUB_TOKEN ausentes. Pulando atualização de secret.")
-        return False
-        
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28"
-    }
-    
-    url_key = f"https://api.github.com/repos/{repo}/actions/secrets/public-key"
-    res_key = requests.get(url_key, headers=headers)
-    if res_key.status_code != 200:
-        print(f"Erro ao obter chave pública: {res_key.text}")
-        return False
-        
-    key_info = res_key.json()
-    key_id = key_info['key_id']
-    key_value = key_info['key']
-    
-    encrypted_value = encrypt_secret(key_value, secret_value)
-    
-    url_secret = f"https://api.github.com/repos/{repo}/actions/secrets/{secret_name}"
-    data = {
-        "encrypted_value": encrypted_value,
-        "key_id": key_id
-    }
-    res_secret = requests.put(url_secret, headers=headers, json=data)
-    if res_secret.status_code in [201, 204]:
-        print(f"✅ Secret {secret_name} atualizado com sucesso no GitHub!")
-        return True
-    else:
-        print(f"❌ Erro ao atualizar secret: {res_secret.text}")
-        return False
+SESSION_DIR = os.path.join(BASE_DIR, "sessao_google")
 
 def send_to_telegram(filepath, caption):
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -100,29 +54,14 @@ def make_progress_bar(percent, elapsed, estimated_total=120):
     return bar, tempo_rest
 
 def main():
-    auth_session_str = os.environ.get('AUTH_SESSION_JSON')
-    if not auth_session_str:
+    if not os.path.exists(SESSION_DIR):
         msg = (
-            "❌ *Sessão não encontrada no GitHub!*\n\n"
-            "O secret `AUTH_SESSION_JSON` está vazio.\n"
-            "Por favor, rode o script `python extract_cookies.py` no seu PC para enviar os cookies iniciais."
+            "❌ *Sessão não encontrada no PC!*\n\n"
+            "A pasta `sessao_google` não existe.\n"
+            "Por favor, rode o script `python login_setup.py` no seu PC para fazer o login inicial."
         )
-        print("Erro: AUTH_SESSION_JSON ausente.")
+        print("Erro: Pasta de sessão ausente.")
         send_status_message(msg)
-        return
-
-    try:
-        raw_cookies = json.loads(auth_session_str)
-        cookies = []
-        for c in raw_cookies:
-            c = dict(c)
-            for k in ['hostOnly', 'session', 'storeId', 'id']:
-                c.pop(k, None)
-            if 'sameSite' in c and c['sameSite'] not in ['Strict', 'Lax', 'None']:
-                del c['sameSite']
-            cookies.append(c)
-    except json.JSONDecodeError:
-        print("Erro: JSON de sessão inválido.")
         return
 
     output_dir = os.path.join(BASE_DIR, 'output')
@@ -146,19 +85,14 @@ def main():
     status_msg_id = send_status_message(f"⏳ *Iniciando geração de {len(prompts)} imagem(ns)...*")
 
     with sync_playwright() as p:
-        # Usando contexto em memória (não-persistente), injetando cookies manualmente
-        # pois o GitHub runner limpa o disco a cada execução
         context = p.chromium.launch_persistent_context(
-            user_data_dir="/tmp/playwright_user_data",
-            headless=False, # O Xvfb permite rodar "visível" de mentira
+            user_data_dir=SESSION_DIR,
+            headless=False,
             accept_downloads=True,
             args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled'],
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             viewport={'width': 1920, 'height': 1080}
         )
-        
-        # Injetar os cookies
-        context.add_cookies(cookies)
         
         page = context.pages[0] if context.pages else context.new_page()
         
@@ -170,10 +104,9 @@ def main():
         if 'accounts.google.com' in current_url or 'signin' in current_url.lower():
             print(f"⚠️ Sessão expirada/bloqueada! URL: {current_url}")
             send_status_message(
-                "⚠️ *Sessão Bloqueada pelo Google!*\n\n"
-                "O Google detectou a mudança de IP e invalidou os cookies.\n"
-                "Rode o script `python extract_cookies.py` no seu PC para enviar novos cookies para o GitHub.\n"
-                "*(Lembre-se: por rodar na nuvem, o Google sempre vai bloquear de tempos em tempos devido à mudança de IP do GitHub Actions)*."
+                "⚠️ *Sessão Expirada!*\n\n"
+                "O login caiu no seu PC local.\n"
+                "Rode o script `python login_setup.py` no seu PC novamente para reconectar a conta."
             )
             context.close()
             return
@@ -359,23 +292,13 @@ def main():
             if idx < len(prompts) - 1:
                 time.sleep(random.uniform(15, 25))
 
-        # NOVIDADE: Atualizar cookies após o término!
-        print("Atualizando cookies para manter a sessão viva...")
-        try:
-            current_cookies = context.cookies()
-            if current_cookies:
-                cookies_json = json.dumps(current_cookies)
-                update_github_secret('AUTH_SESSION_JSON', cookies_json)
-        except Exception as e:
-            print(f"Erro ao salvar novos cookies: {e}")
-
         msg_fim = (
             f"✅ *Processo Concluído!*\n\n"
             f"📊 *Resumo:*\n"
             f"✔️ Sucessos: {sucessos}\n"
             f"❌ Falhas: {falhas}\n"
             f"📝 Total de prompts: {len(prompts)}\n"
-            f"🔄 *Cookies atualizados no GitHub para evitar expiração!*"
+            f"🤖 *Rodou localmente no seu PC (Sem bloqueio de IP)!*"
         )
         edit_status_message(status_msg_id, msg_fim)
         context.close()
