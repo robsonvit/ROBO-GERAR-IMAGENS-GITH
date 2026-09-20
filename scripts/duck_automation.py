@@ -116,27 +116,79 @@ def handle_duck(message):
     else:
         bot.edit_message_text(chat_id=msg.chat.id, message_id=msg.message_id, text="❌ *Erro ao gerar imagem no Duck.ai.*", parse_mode='Markdown')
 
-def enviar_para_telegram(img_path, prompt):
+def enviar_para_telegram(img_path, prompt, msg_id=None):
     bot.send_photo(
         TELEGRAM_CHAT_ID, 
         open(img_path, 'rb'), 
         caption=f"🎨 *Prompt:* {prompt}\n🦆 *Gerado via Duck.ai (GitHub Actions)*", 
         parse_mode='Markdown'
     )
+    if msg_id:
+        try:
+            bot.delete_message(TELEGRAM_CHAT_ID, msg_id)
+        except:
+            pass
+
+import threading
+
+def progress_updater(msg_id):
+    import time
+    bars = [
+        "[■□□□□□□□□□] 10%",
+        "[■■□□□□□□□□] 20%",
+        "[■■■□□□□□□□] 30%",
+        "[■■■■□□□□□□] 40%",
+        "[■■■■■□□□□□] 50%",
+        "[■■■■■■□□□□] 60%",
+        "[■■■■■■■□□□] 70%",
+        "[■■■■■■■■□□] 80%",
+        "[■■■■■■■■■□] 90%",
+        "[■■■■■■■■■■] 99%"
+    ]
+    global is_done
+    idx = 0
+    while not is_done and idx < len(bars):
+        time.sleep(3)
+        if is_done:
+            break
+        try:
+            bot.edit_message_text(
+                chat_id=TELEGRAM_CHAT_ID, 
+                message_id=msg_id, 
+                text=f"🦆 *PROMPT RECEBIDO E A IA ESTÁ TRABALHANDO*\n{bars[idx]}", 
+                parse_mode='Markdown'
+            )
+        except Exception as e:
+            pass
+        idx += 1
+
+is_done = False
 
 if __name__ == "__main__":
     single_prompt = os.environ.get('SINGLE_PROMPT')
+    msg_id = os.environ.get('MESSAGE_ID')
+    
     if single_prompt and single_prompt.strip():
         print(f"[Bot] Rodando via SINGLE_PROMPT (Modo Action): {single_prompt}")
-        # Notifica início
-        msg = bot.send_message(TELEGRAM_CHAT_ID, f"🦆 *Iniciando geração via Duck.ai (Aba anônima)...*\nPrompt: {single_prompt}", parse_mode='Markdown')
+        
+        # Notifica início se não tiver message_id da integração
+        if not msg_id:
+            msg = bot.send_message(TELEGRAM_CHAT_ID, f"🦆 *Iniciando geração via Duck.ai (Aba anônima)...*\nPrompt: {single_prompt}", parse_mode='Markdown')
+            msg_id = msg.message_id
+            
+        t = threading.Thread(target=progress_updater, args=(msg_id,))
+        t.start()
         
         img_path = gerar_imagem_duck(single_prompt)
+        is_done = True
+        
         if img_path and os.path.exists(img_path):
-            enviar_para_telegram(img_path, single_prompt)
-            bot.edit_message_text(chat_id=msg.chat.id, message_id=msg.message_id, text="✅ *Geração e envio concluídos!*", parse_mode='Markdown')
+            enviar_para_telegram(img_path, single_prompt, msg_id)
         else:
-            bot.edit_message_text(chat_id=msg.chat.id, message_id=msg.message_id, text="❌ *Erro ao gerar imagem no Duck.ai.*", parse_mode='Markdown')
+            try:
+                bot.edit_message_text(chat_id=TELEGRAM_CHAT_ID, message_id=msg_id, text="❌ *Erro ao gerar imagem no Duck.ai.*", parse_mode='Markdown')
+            except:
+                pass
     else:
         print("[Bot] Duck.ai Bot listener iniciado! Envie /duck <prompt> no Telegram.")
         bot.infinity_polling()

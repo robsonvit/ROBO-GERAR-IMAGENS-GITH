@@ -15,6 +15,10 @@ on:
         description: 'Chat ID of the Telegram user'
         required: false
         type: string
+      message_id:
+        description: 'Message ID da mensagem de status enviada'
+        required: false
+        type: string
 
 jobs:
   run-duck-automation:
@@ -37,6 +41,7 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ github.event.inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
         SINGLE_PROMPT: ${{ github.event.inputs.prompt }}
+        MESSAGE_ID: ${{ github.event.inputs.message_id }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_REPO: ${{ github.repository }}
       run: python scripts/duck_automation.py
