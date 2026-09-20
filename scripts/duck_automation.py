@@ -77,7 +77,7 @@ def gerar_imagem_duck(prompt: str) -> str:
             # Aguarda o botão de download (Transferir imagem / Download image) ficar visível
             import re
             btn_download = page.get_by_role("button", name=re.compile(r"transferir imagem|download image", re.IGNORECASE)).last
-            btn_download.wait_for(state='visible', timeout=60000)
+            btn_download.wait_for(state='visible', timeout=90000)
             time.sleep(2)
             
             print("Imagem gerada! Clicando no botão de download...")
@@ -94,6 +94,17 @@ def gerar_imagem_duck(prompt: str) -> str:
             
         except Exception as e:
             print(f"Erro no fluxo do Playwright: {e}")
+            try:
+                error_img = os.path.join(output_dir, f"error_duck_{int(time.time())}.png")
+                page.screenshot(path=error_img)
+                print(f"Screenshot de erro salvo em: {error_img}")
+                
+                error_html = os.path.join(output_dir, f"error_duck_{int(time.time())}.html")
+                with open(error_html, 'w', encoding='utf-8') as f:
+                    f.write(page.content())
+                print(f"HTML de erro salvo em: {error_html}")
+            except:
+                pass
             return None
         finally:
             browser.close()
