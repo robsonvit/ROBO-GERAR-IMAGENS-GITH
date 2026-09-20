@@ -30,7 +30,8 @@ def gerar_imagem_duck(prompt: str) -> str:
         )
         context = browser.new_context(
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            viewport={'width': 1920, 'height': 1080}
+            viewport={'width': 1920, 'height': 1080},
+            locale='pt-BR'
         )
         page = context.new_page()
         
@@ -41,12 +42,13 @@ def gerar_imagem_duck(prompt: str) -> str:
             
             print("Clicando em Nova Imagem...")
             try:
-                btn_nova = page.get_by_text("Nova Imagem").first
+                import re
+                btn_nova = page.get_by_text(re.compile(r"Nova Imagem|New Image", re.IGNORECASE)).first
                 if btn_nova.is_visible(timeout=5000):
                     btn_nova.click()
                     time.sleep(2)
                 else:
-                    page.get_by_text("Criar e editar imagens").first.click()
+                    page.get_by_text(re.compile(r"Criar e editar imagens|Create and edit images", re.IGNORECASE)).first.click()
                     time.sleep(2)
             except Exception as e:
                 print("Não achou botão Nova Imagem:", e)
@@ -64,7 +66,7 @@ def gerar_imagem_duck(prompt: str) -> str:
             time.sleep(3)
             
             # Verifica termos
-            btn_continuar = page.locator('button', has_text="Continuar")
+            btn_continuar = page.locator('button', has_text=re.compile(r"Continuar|Continue|I Agree|Agree", re.IGNORECASE))
             if btn_continuar.count() > 0 and btn_continuar.first.is_visible():
                 print("Aceitando termos de serviço (Continuar)...")
                 btn_continuar.first.click()
