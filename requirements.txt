@@ -2,3 +2,4 @@ playwright
 requests
 pyTelegramBotAPI
 python-dotenv
+beautifulsoup4
