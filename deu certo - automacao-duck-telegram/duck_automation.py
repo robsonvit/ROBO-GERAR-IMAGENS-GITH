@@ -25,7 +25,7 @@ def gerar_imagem_duck(prompt: str) -> str:
     """Abre aba anônima, gera a imagem via Duck.ai e retorna o caminho do arquivo."""
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=True, # Alterado para rodar na nuvem
+            headless=False, # Pode mudar para True no futuro
             args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
         )
         context = browser.new_context(

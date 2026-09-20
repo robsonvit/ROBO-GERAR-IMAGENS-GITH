@@ -18,11 +18,19 @@ on:
 
 jobs:
   run-automation:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Configure Google Session State
+      run: |
+        if [ ! -z "${{ secrets.GOOGLE_SESSION_STATE }}" ]; then
+          echo "${{ secrets.GOOGLE_SESSION_STATE }}" | base64 -d > state.json
+        else
+          echo "GOOGLE_SESSION_STATE secret is missing!"
+        fi
 
     - name: Set up Python
       uses: actions/setup-python@v5

@@ -54,13 +54,16 @@ def make_progress_bar(percent, elapsed, estimated_total=120):
     return bar, tempo_rest
 
 def main():
-    if not os.path.exists(SESSION_DIR):
+    state_file = os.path.join(BASE_DIR, "state.json")
+    use_state = os.path.exists(state_file)
+
+    if not os.path.exists(SESSION_DIR) and not use_state:
         msg = (
-            "❌ *Sessão não encontrada no PC!*\n\n"
-            "A pasta `sessao_google` não existe.\n"
-            "Por favor, rode o script `python login_setup.py` no seu PC para fazer o login inicial."
+            "❌ *Sessão não encontrada!*\n\n"
+            "Nem a pasta `sessao_google` nem o arquivo `state.json` existem.\n"
+            "Configure os cookies corretamente."
         )
-        print("Erro: Pasta de sessão ausente.")
+        print("Erro: Sessão ausente.")
         send_status_message(msg)
         return
 
@@ -85,14 +88,28 @@ def main():
     status_msg_id = send_status_message(f"⏳ *Iniciando geração de {len(prompts)} imagem(ns)...*")
 
     with sync_playwright() as p:
-        context = p.chromium.launch_persistent_context(
-            user_data_dir=SESSION_DIR,
-            headless=False,
-            accept_downloads=True,
-            args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled'],
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            viewport={'width': 1920, 'height': 1080}
-        )
+        if use_state:
+            print("🚀 Iniciando na nuvem com state.json (Cookies)...")
+            browser = p.chromium.launch(
+                headless=True,
+                args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled']
+            )
+            context = browser.new_context(
+                storage_state=state_file,
+                accept_downloads=True,
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                viewport={'width': 1920, 'height': 1080}
+            )
+        else:
+            print("💻 Iniciando localmente no PC com pasta de sessão...")
+            context = p.chromium.launch_persistent_context(
+                user_data_dir=SESSION_DIR,
+                headless=False,
+                accept_downloads=True,
+                args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled'],
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                viewport={'width': 1920, 'height': 1080}
+            )
         
         page = context.pages[0] if context.pages else context.new_page()
         
@@ -104,9 +121,9 @@ def main():
         if 'accounts.google.com' in current_url or 'signin' in current_url.lower():
             print(f"⚠️ Sessão expirada/bloqueada! URL: {current_url}")
             send_status_message(
-                "⚠️ *Sessão Expirada!*\n\n"
-                "O login caiu no seu PC local.\n"
-                "Rode o script `python login_setup.py` no seu PC novamente para reconectar a conta."
+                "⚠️ *Sessão Expirada ou Bloqueada!*\n\n"
+                "Os cookies falharam ou caíram no login do Google.\n"
+                "Rode o export_cookies.py novamente e atualize o GitHub Secrets."
             )
             context.close()
             return
@@ -298,10 +315,13 @@ def main():
             f"✔️ Sucessos: {sucessos}\n"
             f"❌ Falhas: {falhas}\n"
             f"📝 Total de prompts: {len(prompts)}\n"
-            f"🤖 *Rodou localmente no seu PC (Sem bloqueio de IP)!*"
+            f"🤖 *Rodou de forma automatizada!*"
         )
         edit_status_message(status_msg_id, msg_fim)
         context.close()
+        
+        if use_state:
+            browser.close()
 
 if __name__ == "__main__":
     main()

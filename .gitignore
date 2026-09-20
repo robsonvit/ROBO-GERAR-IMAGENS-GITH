@@ -4,3 +4,7 @@ output/
 AUTH_SESSION_JSON
 .env
 .pytest_cache/
+
+actions-runner/
+sessao_google/
+state_b64.txt
