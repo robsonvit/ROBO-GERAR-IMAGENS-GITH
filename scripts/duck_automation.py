@@ -51,7 +51,12 @@ def gerar_imagem_duck(prompt: str) -> str:
             except Exception as e:
                 print("Não achou botão Nova Imagem:", e)
                 
-            print(f"Enviando prompt: {prompt}")
+            # Garante o prefixo "crie uma imagem"
+            prompt_lower = prompt.lower()
+            if not prompt_lower.startswith("crie") and not prompt_lower.startswith("gere") and not prompt_lower.startswith("faça"):
+                prompt = f"crie a imagem de {prompt}"
+                
+            print(f"Enviando prompt calibrado: {prompt}")
             input_area = page.locator('textarea').first
             input_area.fill(prompt)
             time.sleep(1)
@@ -67,38 +72,22 @@ def gerar_imagem_duck(prompt: str) -> str:
                 
             print("Aguardando geração da imagem (pode levar até 30s)...")
             
-            # Aguarda até aparecer uma tag img com src base64
-            # Duck.ai retorna a imagem em base64 com class contendo a imagem gerada
-            # Usaremos function evaluation
-            page.wait_for_function('''() => {
-                const imgs = Array.from(document.querySelectorAll('img'));
-                return imgs.some(img => img.src && img.src.startsWith('data:image/jpeg;base64'));
-            }''', timeout=60000)
-            
+            # Aguarda o botão de download (Transferir imagem / Download image) ficar visível
+            import re
+            btn_download = page.get_by_role("button", name=re.compile(r"transferir imagem|download image", re.IGNORECASE)).last
+            btn_download.wait_for(state='visible', timeout=60000)
             time.sleep(2)
-            html = page.content()
-            soup = BeautifulSoup(html, 'html.parser')
-            imgs = soup.find_all('img')
             
-            img_b64 = None
-            for img in imgs:
-                src = img.get('src', '')
-                if src.startswith('data:image/jpeg;base64'):
-                    img_b64 = src
-                    break
-                    
-            if not img_b64:
-                raise Exception("Imagem não encontrada no HTML gerado.")
-                
-            # Extrair o base64
-            b64_data = img_b64.split(',', 1)[1]
-            img_bytes = base64.b64decode(b64_data)
-            
+            print("Imagem gerada! Clicando no botão de download...")
             file_path = os.path.join(output_dir, f"duck_img_{int(time.time())}.jpg")
-            with open(file_path, "wb") as f:
-                f.write(img_bytes)
+            
+            with page.expect_download(timeout=30000) as download_info:
+                btn_download.click(force=True)
                 
-            print(f"Imagem salva em {file_path}")
+            download = download_info.value
+            download.save_as(file_path)
+                
+            print(f"Imagem salva com sucesso via download nativo em {file_path}")
             return file_path
             
         except Exception as e:
@@ -138,7 +127,7 @@ def enviar_para_telegram(img_path, prompt):
 if __name__ == "__main__":
     single_prompt = os.environ.get('SINGLE_PROMPT')
     if single_prompt and single_prompt.strip():
-        print(f"🤖 Rodando via SINGLE_PROMPT (Modo Action): {single_prompt}")
+        print(f"[Bot] Rodando via SINGLE_PROMPT (Modo Action): {single_prompt}")
         # Notifica início
         msg = bot.send_message(TELEGRAM_CHAT_ID, f"🦆 *Iniciando geração via Duck.ai (Aba anônima)...*\nPrompt: {single_prompt}", parse_mode='Markdown')
         
@@ -149,6 +138,6 @@ if __name__ == "__main__":
         else:
             bot.edit_message_text(chat_id=msg.chat.id, message_id=msg.message_id, text="❌ *Erro ao gerar imagem no Duck.ai.*", parse_mode='Markdown')
     else:
-        print("🦆 Duck.ai Bot listener iniciado! Envie /duck <prompt> no Telegram.")
+        print("[Bot] Duck.ai Bot listener iniciado! Envie /duck <prompt> no Telegram.")
         bot.infinity_polling()
 
