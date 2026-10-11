@@ -1,12 +1,12 @@
 // Configurações (Preencha com seus dados)
 var TELEGRAM_TOKEN = '8884730667:AAFksICsljBm17MkrANpCrBnGhuPbIQ2-Xc';
-var GITHUB_TOKEN = 'SEU_GITHUB_TOKEN_AQUI';
+var GITHUB_TOKEN = 'SEU_GITHUB_TOKEN_AQUI'; // Insira seu token do GitHub (escopo: repo + workflow)
 var GITHUB_REPO = 'robsonvit/ROBO-GERAR-IMAGENS-GITH'; // Repositório atual
-var WORKFLOW_GERAR = 'run_generation.yml';
-var WORKFLOW_DUCK = 'run_duck_generation.yml';
+var WORKFLOW_GERAR = 'run_generation.yml'; // Google Flow 2K
+var WORKFLOW_DUCK = 'run_duck_generation.yml'; // DuckDuckGo fallback
 
 function doGet(e) {
-  return ContentService.createTextOutput("Webhook OK e Ativo!");
+  return ContentService.createTextOutput("Webhook Google Flow OK e Ativo 24h!");
 }
 
 function doPost(e) {
@@ -22,21 +22,40 @@ function doPost(e) {
     cache.put(updateId, "true", 3600);
 
     if (update.message && update.message.text) {
-      var text = update.message.text || "";
+      var text = (update.message.text || "").trim();
       var chatId = update.message.chat.id;
 
-      if (text.startsWith('/gerar ')) {
-        var prompt = text.replace('/gerar ', '').trim();
-        if (prompt) {
-          enviarMensagemTelegram(chatId, "🚀 *Comando recebido!*\nAcordando o servidor Labs...\n_(Aguarde 1-2 minutos)_");
-          enviarParaGitHub(prompt, chatId, WORKFLOW_GERAR);
+      if (text.startsWith('/start')) {
+        var msg = "👋 *Olá! Sou seu Bot Gerador de Imagens no Google Flow.*\n\n" +
+                  "Ele roda 100% na nuvem sem precisar do PC ligado!\n\n" +
+                  "📌 *Como usar:*\n" +
+                  "• `/flow seu prompt aqui` (ou apenas digite o prompt)\n" +
+                  "• `/gerar seu prompt aqui`\n" +
+                  "• `/duck seu prompt aqui` (alternativa Duck.ai)\n\n" +
+                  "✨ As imagens são geradas no Google Flow em alta resolução (2K)!";
+        enviarMensagemTelegram(chatId, msg);
+        return ContentService.createTextOutput("OK");
+      }
+
+      if (text.startsWith('/duck ')) {
+        var promptDuck = text.replace('/duck ', '').trim();
+        if (promptDuck) {
+          var msgId = enviarMensagemTelegram(chatId, "🦆 *Comando DuckDuckGo recebido!*\n`[░░░░░░░░░░] 0%`");
+          enviarParaGitHub(promptDuck, chatId, WORKFLOW_DUCK, msgId);
         }
       } 
-      else if (text.startsWith('/duck ')) {
-        var prompt = text.replace('/duck ', '').trim();
+      else {
+        // Trata /flow, /gerar ou prompt direto digitado pelo usuário
+        var prompt = text;
+        if (prompt.startsWith('/flow ')) {
+          prompt = prompt.replace('/flow ', '').trim();
+        } else if (prompt.startsWith('/gerar ')) {
+          prompt = prompt.replace('/gerar ', '').trim();
+        }
+
         if (prompt) {
-          var msgId = enviarMensagemTelegram(chatId, "🦆 *PROMPT RECEBIDO E A IA ESTÁ TRABALHANDO*\n[□□□□□□□□□□] 0%");
-          enviarParaGitHub(prompt, chatId, WORKFLOW_DUCK, msgId);
+          var msgId = enviarMensagemTelegram(chatId, "🎨 *Prompt recebido!*\nAcordando o Google Flow na nuvem...\n`[░░░░░░░░░░] 0%`");
+          enviarParaGitHub(prompt, chatId, WORKFLOW_GERAR, msgId);
         }
       }
     }
@@ -76,7 +95,7 @@ function enviarParaGitHub(prompt, chatId, workflow_file, messageId) {
   try {
     UrlFetchApp.fetch(githubUrl, options);
   } catch (error) {
-    enviarMensagemTelegram(chatId, "❌ Erro grave: " + error.toString());
+    enviarMensagemTelegram(chatId, "❌ Erro grave ao acionar GitHub Actions: " + error.toString());
   }
 }
 
