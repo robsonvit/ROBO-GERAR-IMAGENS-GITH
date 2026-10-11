@@ -6,6 +6,11 @@ import requests
 import re
 import sys
 from playwright.sync_api import sync_playwright
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env'))
+except ImportError:
+    pass
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SESSION_DIR = os.path.join(BASE_DIR, "sessao_google")
@@ -208,9 +213,8 @@ def main():
                     print("Na página inicial do Flow. Abrindo/criando projeto...")
                     project_opened = False
                     
-                    # Procura botão '+ Novo projeto' ou 'Start Creating'
                     try:
-                        btn_novo = page.locator("text=/Novo projeto/i, text=/New project/i, text=/Start Creating/i").first
+                        btn_novo = page.locator("button.new-project-button, button:has-text('Novo projeto'), text=/Novo projeto/i, text=/New project/i, text=/Start Creating/i").first
                         if btn_novo.is_visible(timeout=8000):
                             btn_novo.click()
                             time.sleep(4)
