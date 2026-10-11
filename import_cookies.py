@@ -11,6 +11,14 @@ Como usar:
 import os
 import json
 import subprocess
+import sys
+
+# Garante suporte a UTF-8 no Windows
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -53,8 +61,8 @@ def main():
     compact_json = json.dumps(data)
     try:
         print("🚀 Enviando para o GitHub Secrets (AUTH_SESSION_JSON)...")
-        cmd = ["gh", "secret", "set", "AUTH_SESSION_JSON", "-b", compact_json]
-        subprocess.run(cmd, cwd=BASE_DIR, check=True, capture_output=True, text=True)
+        cmd = ["gh", "secret", "set", "AUTH_SESSION_JSON"]
+        subprocess.run(cmd, input=compact_json, cwd=BASE_DIR, check=True, capture_output=True, text=True)
         print("✅ Segredo 'AUTH_SESSION_JSON' atualizado com sucesso no GitHub Actions!")
         print("\n🎉 PRONTO! O robô no GitHub Actions já tem seus cookies do Flow!")
         print("   Agora ele entra direto na sua conta sem pedir nada, igualzinho ao Grok!")

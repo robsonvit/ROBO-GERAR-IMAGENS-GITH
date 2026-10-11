@@ -70,6 +70,22 @@ def edit_status_message(message_id, text):
     except Exception as e:
         print(f"Erro ao editar mensagem de status: {e}")
 
+def update_github_secret_cookies(new_cookies):
+    gh_token = os.environ.get('GH_PAT_TOKEN')
+    repo = os.environ.get('GITHUB_REPO')
+    if not gh_token or not repo:
+        return
+    try:
+        import subprocess
+        compact_json = json.dumps(new_cookies)
+        cmd = ["gh", "secret", "set", "AUTH_SESSION_JSON", "--repo", repo]
+        env = os.environ.copy()
+        env["GH_TOKEN"] = gh_token
+        res = subprocess.run(cmd, input=compact_json, text=True, env=env, check=True, capture_output=True)
+        print("🔄 Cookies renovados e salvos com sucesso no GitHub Secrets!")
+    except Exception as e:
+        print(f"Aviso ao renovar segredo no GitHub: {e}")
+
 def make_progress_bar(percent, elapsed, estimated_total=120):
     bar_length = 10
     filled_length = int(bar_length * percent // 100)
@@ -226,13 +242,26 @@ def main():
                 if not editor_locator.is_visible():
                     print("Editor não está visível. Abrindo/criando projeto...")
                     # Se estiver na página de apresentação (/about), clica em "Create with Google Flow"
-                    create_btn = page.locator('text="Create with Google Flow", button:has-text("Create with Google Flow"), a:has-text("Create with Google Flow")').first
-                    if create_btn.is_visible(timeout=3000):
-                        print("Clicando no botão 'Create with Google Flow' na página de boas-vindas...")
-                        create_btn.click()
-                        time.sleep(5)
+                    create_btn = page.get_by_text(re.compile(r"Create with Google Flow|Criar com o Google Flow", re.I)).first
+                    try:
+                        if create_btn.is_visible(timeout=3000):
+                            print("Clicando no botão 'Create with Google Flow' na página de boas-vindas...")
+                            create_btn.click()
+                            time.sleep(5)
+                            if 'accounts.google.com' in page.url or 'signin' in page.url.lower():
+                                send_status_message(
+                                    "⚠️ *Sessão Expirada!*\n\n"
+                                    "A sessão do Google Flow expirou e caiu no login.\n"
+                                    "Por favor, atualize os cookies via Cookie-Editor ou rode `python import_cookies.py`."
+                                )
+                                context.close()
+                                return
+                    except Exception as e:
+                        print(f"Aviso ao tentar botão de boas-vindas: {e}")
 
-                    btn_novo = page.locator("button.new-project-button").first
+                    btn_novo = page.locator("button.new-project-button").or_(
+                        page.get_by_role("button", name=re.compile(r"Novo projeto|New project", re.I))
+                    ).first
                     card = page.locator('a.project-thumbnail-container, a[href*="/project/"]').first
                     if btn_novo.is_visible(timeout=6000):
                         print("Clicando em Novo Projeto (+)...")
@@ -443,6 +472,15 @@ def main():
             f"☁️ *Executado 100% na nuvem sem o PC ligado!*"
         )
         edit_status_message(status_msg_id, msg_fim)
+        if use_state and sucessos > 0:
+            try:
+                new_cookies = context.cookies()
+                if new_cookies:
+                    print(f"🔄 Salvando {len(new_cookies)} cookies renovados da sessão...")
+                    update_github_secret_cookies(new_cookies)
+            except Exception as e:
+                print(f"Aviso ao renovar cookies: {e}")
+
         context.close()
         if use_state:
             browser.close()
