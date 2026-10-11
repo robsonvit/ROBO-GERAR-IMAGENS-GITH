@@ -175,10 +175,15 @@ def main():
                     c_clean = dict(c)
                     for k in ['hostOnly', 'session', 'storeId', 'id']:
                         c_clean.pop(k, None)
-                    # No Cookie-Editor, SameSite=None vem como 'no_restriction'
-                    if c_clean.get('sameSite') == 'no_restriction':
+                    # Normalização rigorosa de sameSite para o Playwright
+                    ss = str(c_clean.get('sameSite', '')).lower()
+                    if ss in ['no_restriction', 'none']:
                         c_clean['sameSite'] = 'None'
-                    elif 'sameSite' in c_clean and c_clean['sameSite'] not in ['Strict', 'Lax', 'None']:
+                    elif ss == 'lax':
+                        c_clean['sameSite'] = 'Lax'
+                    elif ss == 'strict':
+                        c_clean['sameSite'] = 'Strict'
+                    else:
                         c_clean.pop('sameSite', None)
                     cleaned_cookies.append(c_clean)
                 context.add_cookies(cleaned_cookies)

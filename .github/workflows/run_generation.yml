@@ -82,11 +82,11 @@ jobs:
         GH_PAT_TOKEN: ${{ secrets.GH_PAT_TOKEN }}
         GITHUB_REPO: ${{ github.repository }}
       run: |
-        if [ -n "$GEMINI_API_KEY" ]; then
-          echo "🚀 Chave GEMINI_API_KEY detectada! Executando via API Oficial do Google Imagen..."
-          python scripts/imagen_api.py
+        if [ "$USE_IMAGEN_API" = "true" ] && [ -n "$GEMINI_API_KEY" ]; then
+          echo "🚀 Modo API Oficial ativado! Executando via Google Imagen API..."
+          python scripts/imagen_api.py || xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python scripts/ui_automation.py
         else
-          echo "🌐 Chave de API não configurada. Executando via Google Flow UI Automation..."
+          echo "🌐 Executando via Google Flow UI Automation com cookies atualizados..."
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python scripts/ui_automation.py
         fi
 
