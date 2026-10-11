@@ -70,9 +70,10 @@ jobs:
       if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: python -m playwright install chromium
 
-    - name: Run UI Automation on Google Flow
+    - name: Run Image Generation (Google Imagen API or Flow UI)
       env:
         PYTHONUNBUFFERED: "1"
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ github.event.inputs.chat_id || secrets.TELEGRAM_CHAT_ID }}
         SINGLE_PROMPT: ${{ github.event.inputs.prompt }}
@@ -80,7 +81,14 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GH_PAT_TOKEN: ${{ secrets.GH_PAT_TOKEN }}
         GITHUB_REPO: ${{ github.repository }}
-      run: xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python scripts/ui_automation.py
+      run: |
+        if [ -n "$GEMINI_API_KEY" ]; then
+          echo "🚀 Chave GEMINI_API_KEY detectada! Executando via API Oficial do Google Imagen..."
+          python scripts/imagen_api.py
+        else
+          echo "🌐 Chave de API não configurada. Executando via Google Flow UI Automation..."
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python scripts/ui_automation.py
+        fi
 
     - name: Upload Output (imagens e debug)
       uses: actions/upload-artifact@v4

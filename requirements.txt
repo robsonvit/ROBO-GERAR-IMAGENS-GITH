@@ -3,3 +3,5 @@ requests
 pyTelegramBotAPI
 python-dotenv
 beautifulsoup4
+google-genai
+pillow
