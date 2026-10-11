@@ -36,16 +36,18 @@ def is_logged_in(context, page):
     
     return True, "Sessão autenticada válida!"
 
-def update_github_secret(b64_content):
-    """Atualiza automaticamente o segredo no GitHub se o gh CLI estiver configurado."""
+def update_github_secret(b64_content, state_dict=None):
+    """Atualiza automaticamente os segredos no GitHub se o gh CLI estiver configurado."""
     try:
-        cmd = ["gh", "secret", "set", "GOOGLE_SESSION_STATE", "-b", b64_content]
-        res = subprocess.run(cmd, cwd=PROJECT_DIR, capture_output=True, text=True, check=True)
-        print("✅ Segredo 'GOOGLE_SESSION_STATE' atualizado no GitHub Actions automaticamente via gh CLI!")
+        cmd1 = ["gh", "secret", "set", "GOOGLE_SESSION_STATE", "-b", b64_content]
+        subprocess.run(cmd1, cwd=PROJECT_DIR, capture_output=True, text=True, check=True)
+        if state_dict:
+            cmd2 = ["gh", "secret", "set", "AUTH_SESSION_JSON"]
+            subprocess.run(cmd2, input=json.dumps(state_dict), cwd=PROJECT_DIR, capture_output=True, text=True, check=True)
+        print("✅ Segredos 'AUTH_SESSION_JSON' e 'GOOGLE_SESSION_STATE' atualizados no GitHub Actions!")
         return True
     except Exception as e:
         print(f"ℹ️ Não foi possível atualizar o GitHub via gh CLI ({e}).")
-        print("   Copie o conteúdo de 'state_b64.txt' e cole em GitHub -> Settings -> Secrets -> Actions.")
         return False
 
 def main():
@@ -122,7 +124,7 @@ def main():
 
         # Sincroniza com GitHub Secrets
         print("\n🚀 Sincronizando sessão com o GitHub Actions...")
-        update_github_secret(state_b64)
+        update_github_secret(state_b64, state)
 
         print("\n🎉 SESSÃO ATIVA CONFIGURADA COM SUCESSO!")
         print("   Agora o GitHub Actions tem as credenciais da sua conta Google Flow.")
