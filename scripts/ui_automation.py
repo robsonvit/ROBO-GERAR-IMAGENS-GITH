@@ -208,36 +208,29 @@ def main():
             try:
                 update_status(5, "Acessando estúdio do Flow...")
 
-                # 1. Verificar se já está dentro de um projeto (/project/) ou na home do Flow
-                if '/project/' not in page.url:
-                    print("Na página inicial do Flow. Abrindo/criando projeto...")
-                    project_opened = False
-                    
-                    try:
-                        btn_novo = page.locator("button.new-project-button, button:has-text('Novo projeto'), text=/Novo projeto/i, text=/New project/i, text=/Start Creating/i").first
-                        if btn_novo.is_visible(timeout=8000):
-                            btn_novo.click()
-                            time.sleep(4)
-                            project_opened = True
-                    except Exception as e:
-                        print(f"Tentativa 1 de abrir projeto: {e}")
+                # 1. Verificar se o editor já está visível ou se precisa abrir/criar projeto
+                editor_locator = page.locator('div[contenteditable="true"].ProseMirror').first
+                if not editor_locator.is_visible():
+                    print("Editor não está visível. Abrindo/criando projeto...")
+                    if '/about' in page.url:
+                        page.goto('https://flow.google.com/', wait_until='domcontentloaded')
+                        time.sleep(4)
 
-                    # Se não abriu, tenta clicar no primeiro card de projeto existente
-                    if not project_opened and '/project/' not in page.url:
-                        try:
-                            card = page.locator('a[href*="/project/"]').first
-                            if card.is_visible(timeout=5000):
-                                card.click()
-                                time.sleep(4)
-                                project_opened = True
-                        except Exception as e:
-                            print(f"Tentativa 2 de abrir projeto: {e}")
+                    btn_novo = page.locator("button.new-project-button").first
+                    if btn_novo.is_visible(timeout=5000):
+                        print("Clicando em Novo Projeto (+)...")
+                        btn_novo.click()
+                        time.sleep(4)
+                    else:
+                        print("Abrindo primeiro projeto existente...")
+                        page.locator('a.project-thumbnail-container, a[href*="/project/"]').first.click()
+                        time.sleep(4)
 
-                    try:
-                        page.wait_for_url("**/project/**", timeout=25000)
-                        print(f"✅ Projeto aberto: {page.url}")
-                    except Exception:
-                        print(f"Aviso: URL não mudou para /project/: {page.url}")
+                try:
+                    editor_locator.wait_for(state='visible', timeout=25000)
+                    print("✅ Editor ProseMirror visível com sucesso!")
+                except Exception as e:
+                    print(f"Aviso ao aguardar editor: {e}")
 
                 # 2. Fechar eventuais popups / avisos
                 for _ in range(3):
@@ -259,32 +252,6 @@ def main():
                 except Exception:
                     pass
 
-                update_status(15, "Localizando editor de prompt...")
-
-                # 4. Localizar o campo de prompt
-                editor_selectors = [
-                    'div[contenteditable="true"].ProseMirror',
-                    'div[role="textbox"][data-slate-editor="true"][contenteditable="true"]',
-                    'div[contenteditable="true"][data-slate-editor="true"]',
-                    'div[contenteditable="true"][aria-multiline="true"][role="textbox"]',
-                    '[data-slate-editor="true"][contenteditable="true"]',
-                    'div[role="textbox"][contenteditable="true"]',
-                    'div[contenteditable="true"]'
-                ]
-
-                input_locator = None
-                for sel in editor_selectors:
-                    loc = page.locator(sel).last
-                    try:
-                        if loc.is_visible(timeout=3000):
-                            input_locator = loc
-                            break
-                    except Exception:
-                        continue
-
-                if not input_locator:
-                    raise Exception("Editor de prompt do Google Flow não encontrado.")
-
                 # Mapear imagens existentes antes do envio
                 old_srcs = set(page.evaluate('''() => {
                     return Array.from(document.querySelectorAll('img'))
@@ -297,7 +264,7 @@ def main():
                 print(f"Imagens existentes antes do prompt: {len(old_srcs)}")
 
                 update_status(25, "Digitando prompt...")
-                input_locator.click()
+                editor_locator.click()
                 time.sleep(0.3)
                 page.keyboard.press("Control+a")
                 time.sleep(0.1)
@@ -305,39 +272,12 @@ def main():
                 time.sleep(0.2)
 
                 # Digita o prompt suavemente
-                input_locator.press_sequentially(prompt, delay=35)
-                time.sleep(1.2)
+                editor_locator.press_sequentially(prompt, delay=35)
+                time.sleep(1.0)
 
                 update_status(35, "Enviando solicitação...")
-
-                # 5. Localizar botão de envio (ícone de seta ou Create)
-                submitted = False
-                try:
-                    submit_btn = page.locator(
-                        'button:has(i:text-is("arrow_forward")), '
-                        'button:has(mat-icon:text-is("arrow_forward")), '
-                        'button:has(span:has-text("arrow_forward")), '
-                        'button[aria-label="Create"], '
-                        'button[aria-label*="Create" i], '
-                        'button[aria-label*="Criar" i], '
-                        'button[type="submit"]'
-                    ).first
-
-                    if submit_btn.is_visible(timeout=3000):
-                        for _ in range(15):
-                            disabled = submit_btn.get_attribute("disabled") is not None or submit_btn.get_attribute("aria-disabled") == "true"
-                            if not disabled:
-                                break
-                            time.sleep(0.2)
-                        submit_btn.click()
-                        submitted = True
-                        print("✅ Botão de envio clicado!")
-                except Exception as e:
-                    print(f"Tentativa no botão de envio: {e}")
-
-                if not submitted:
-                    input_locator.press('Enter')
-                    print("✅ Prompt enviado via tecla Enter!")
+                page.keyboard.press("Enter")
+                print("✅ Prompt enviado via tecla Enter!")
 
                 # Fechar eventual toast de validação
                 time.sleep(1.0)
@@ -350,7 +290,7 @@ def main():
 
                 update_status(45, "Aguardando geração da imagem no Flow...")
 
-                # 6. Aguardar nova imagem ser renderizada no grid
+                # 4. Aguardar nova imagem ser renderizada no grid
                 new_img_src = None
                 start_wait = time.time()
                 max_wait_seconds = 180
@@ -369,12 +309,12 @@ def main():
                     if has_failed:
                         raise Exception("Google Flow indicou falha na geração.")
 
-                    # Verificar novas imagens no DOM
+                    # Verificar novas imagens no DOM com URL http e tamanho >= 80
                     found_src = page.evaluate('''(oldList) => {
                         const oldSet = new Set(oldList);
                         const imgs = Array.from(document.querySelectorAll('img')).filter(i => {
                             const r = i.getBoundingClientRect();
-                            return r.width >= 80 && r.height >= 80 && i.src && i.src.startsWith('http');
+                            return r.width >= 80 && r.height >= 80 && i.src && (i.src.includes('/asb/') || i.src.startsWith('http'));
                         });
                         for (const img of imgs) {
                             if (!oldSet.has(img.src)) {
@@ -394,122 +334,67 @@ def main():
                 if not new_img_src:
                     raise Exception("Timeout 180s: A nova imagem não foi detectada no Flow.")
 
-                time.sleep(2.0)
+                time.sleep(3.0)
                 update_status(75, "Localizando imagem e preparando download 2K...")
 
-                # 7. Obter coordenadas da imagem para o hover
-                img_box = None
-                for _ in range(20):
-                    img_box = page.evaluate('''(targetSrc) => {
-                        const img = Array.from(document.querySelectorAll('img')).find(i => i.src === targetSrc);
-                        if (!img) return null;
-                        const r = img.getBoundingClientRect();
-                        if (r.width < 50 || r.height < 50) return null;
-                        return {
-                            left: r.left,
-                            top: r.top,
-                            right: r.right,
-                            bottom: r.bottom,
-                            width: r.width,
-                            height: r.height,
-                            cx: r.left + r.width / 2,
-                            cy: r.top + r.height / 2
-                        };
-                    }''', new_img_src)
-                    if img_box:
-                        break
-                    time.sleep(1.0)
+                # 5. Localizar elemento da imagem gerada e ativar a hotbar via hover
+                target_img = page.locator(f'img[src="{new_img_src}"]').first
+                if not target_img.is_visible():
+                    target_img = page.locator('img[src*="/asb/"]').last
 
-                if not img_box:
-                    raise Exception("Não foi possível obter coordenadas da imagem gerada.")
+                print("Fazendo hover sobre a imagem gerada para ativar o menu...")
+                target_img.hover()
+                time.sleep(1.0)
 
-                # 8. Wiggle do mouse para revelar botão de 3 pontos (⋮) no canto superior direito
-                dots_coords = None
-                print("Balançando mouse sobre a imagem para revelar o botão ⋮...")
-                for w_attempt in range(25):
-                    # Movimenta suavemente pelo centro e canto superior direito
-                    page.mouse.move(img_box['cx'] + (w_attempt % 2 * 20 - 10), img_box['cy'] + (w_attempt % 2 * 20 - 10))
-                    time.sleep(0.2)
-                    page.mouse.move(img_box['right'] - 30, img_box['top'] + 25)
-                    time.sleep(0.3)
+                # 6. Localizar o botão de 3 pontos correspondente
+                dots_btn = None
+                img_box = target_img.bounding_box()
+                if img_box:
+                    dots_locators = page.locator('button[aria-label="Mais opções"], button:has-text("more_vert")')
+                    for d_idx in range(dots_locators.count()):
+                        btn_cand = dots_locators.nth(d_idx)
+                        b_box = btn_cand.bounding_box()
+                        if b_box and abs(b_box['y'] - img_box['y']) < 100 and b_box['x'] >= img_box['x']:
+                            dots_btn = btn_cand
+                            break
 
-                    dots_coords = page.evaluate('''(b) => {
-                        const btns = Array.from(document.querySelectorAll('button')).filter(btn => {
-                            const s = window.getComputedStyle(btn);
-                            if (s.display === 'none' || s.visibility === 'hidden') return false;
-                            const r = btn.getBoundingClientRect();
-                            if (r.width === 0 || r.height === 0) return false;
-                            const cx = r.left + r.width / 2;
-                            const cy = r.top + r.height / 2;
-                            return cx >= b.right - 160 && cx <= b.right + 25 && cy >= b.top - 20 && cy <= b.top + 70;
-                        });
-                        if (!btns.length) return null;
-                        btns.sort((a, b2) => b2.getBoundingClientRect().left - a.getBoundingClientRect().left);
-                        const rc = btns[0].getBoundingClientRect();
-                        return { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2 };
-                    }''', img_box)
+                if not dots_btn:
+                    dots_btn = page.locator('button[aria-label="Mais opções"], button:has-text("more_vert")').first
 
-                    if dots_coords:
-                        print(f"✅ Botão ⋮ encontrado na tentativa {w_attempt + 1}!")
-                        break
-                    time.sleep(1.0)
-
-                if not dots_coords:
-                    raise Exception("Botão de 3 pontos (⋮) não apareceu sobre a imagem.")
-
-                # Clica no botão ⋮
-                page.mouse.click(dots_coords['x'], dots_coords['y'])
+                print("Clicando no botão ⋮ (Mais opções)...")
+                dots_btn.click(force=True)
                 time.sleep(1.5)
 
-                # 9. Localizar opção "Baixar" no menu de contexto
+                # 7. Localizar opção "Fazer o download" no menu de contexto
                 update_status(85, "Abrindo menu de download...")
-                baixar_coords = None
-                for _ in range(15):
-                    baixar_coords = page.evaluate('''() => {
-                        const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
-                            const t = (el.textContent || '').trim().toLowerCase();
-                            return t.includes('baixar') || t.includes('download');
-                        });
-                        if (!items.length) return null;
-                        const r = items[items.length - 1].getBoundingClientRect();
-                        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-                    }''')
-                    if baixar_coords:
-                        break
-                    time.sleep(0.3)
+                baixar_menu = page.locator(
+                    'button[role="menuitem"]:has-text("download"), '
+                    'button[role="menuitem"]:has-text("Download"), '
+                    'button[role="menuitem"]:has-text("Fazer o download"), '
+                    '[role="menuitem"]:has-text("download")'
+                ).first
 
-                if not baixar_coords:
-                    raise Exception("Opção 'Baixar' não encontrada no menu.")
+                if not baixar_menu.is_visible(timeout=5000):
+                    raise Exception("Item de menu 'Fazer o download' não encontrado.")
 
-                # Passa o mouse sobre "Baixar" para abrir o submenu de resolução (2K/1K)
-                page.mouse.move(baixar_coords['x'], baixar_coords['y'])
+                print("Hover sobre 'Fazer o download' para abrir submenu de resolução...")
+                baixar_menu.hover()
                 time.sleep(1.5)
 
-                # 10. Localizar a opção "2K" no submenu
-                btn2k_coords = None
-                for _ in range(15):
-                    btn2k_coords = page.evaluate('''() => {
-                        const items = Array.from(document.querySelectorAll('li, [role="menuitem"], [role="option"], .mat-mdc-menu-item')).filter(el => {
-                            const t = (el.textContent || '').trim().toLowerCase();
-                            return t.includes('2k');
-                        });
-                        if (!items.length) return null;
-                        const r = items[0].getBoundingClientRect();
-                        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-                    }''')
-                    if btn2k_coords:
-                        break
-                    time.sleep(0.3)
-
-                target_download = btn2k_coords if btn2k_coords else baixar_coords
-                qualidade_str = "2K" if btn2k_coords else "1K"
+                # 8. Localizar a opção "2K" no submenu
+                opt_2k = page.locator('button:has-text("2K"), [role="menuitem"]:has-text("2K")').first
+                qualidade_str = "2K"
+                target_download = opt_2k if opt_2k.is_visible(timeout=3000) else baixar_menu
+                if not opt_2k.is_visible():
+                    qualidade_str = "1K"
+                    print("Aviso: Opção 2K não visível no submenu, baixando em 1K...")
 
                 update_status(90, f"Baixando imagem em {qualidade_str}...")
-                print(f"Iniciando download ({qualidade_str})...")
+                print(f"Iniciando download nativo ({qualidade_str})...")
 
-                # 11. Interceptar e salvar o download nativo do Playwright
+                # 9. Interceptar e salvar o download nativo do Playwright
                 with page.expect_download(timeout=120000) as download_info:
-                    page.mouse.click(target_download['x'], target_download['y'])
+                    target_download.click()
                     time.sleep(1.0)
 
                 download = download_info.value
@@ -546,6 +431,10 @@ def main():
         context.close()
         if use_state:
             browser.close()
+
+        if sucessos == 0 and len(prompts) > 0:
+            print("❌ Nenhuma imagem foi gerada com sucesso.")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()

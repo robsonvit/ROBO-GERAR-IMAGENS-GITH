@@ -8,3 +8,6 @@ AUTH_SESSION_JSON
 actions-runner/
 sessao_google/
 state_b64.txt
+cookies.json
+state.json
+scratch/
