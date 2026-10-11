@@ -352,22 +352,18 @@ def main():
                 target_img.hover()
                 time.sleep(1.0)
 
-                # 6. Localizar o botão de 3 pontos correspondente
-                dots_btn = None
-                img_box = target_img.bounding_box()
-                if img_box:
-                    dots_locators = page.locator('button[aria-label="Mais opções"], button:has-text("more_vert")')
-                    for d_idx in range(dots_locators.count()):
-                        btn_cand = dots_locators.nth(d_idx)
-                        b_box = btn_cand.bounding_box()
-                        if b_box and abs(b_box['y'] - img_box['y']) < 100 and b_box['x'] >= img_box['x']:
-                            dots_btn = btn_cand
+                # 6. Localizar o botão de 3 pontos do card da imagem (tem atributo flowhotbarbutton e fica no card com y > 50)
+                dots_btn = page.locator('button[flowhotbarbutton][aria-label*="opções" i], button[flowhotbarbutton]:has-text("more_vert")').first
+                if not dots_btn.is_visible():
+                    all_dots = page.locator('button:has-text("more_vert"), button[aria-label*="opções" i]')
+                    for d_idx in range(all_dots.count()):
+                        cand = all_dots.nth(d_idx)
+                        b_box = cand.bounding_box()
+                        if b_box and b_box['y'] > 50:
+                            dots_btn = cand
                             break
 
-                if not dots_btn:
-                    dots_btn = page.locator('button[aria-label="Mais opções"], button:has-text("more_vert")').first
-
-                print("Clicando no botão ⋮ (Mais opções)...")
+                print("Clicando no botão ⋮ do card da imagem...")
                 dots_btn.click(force=True)
                 time.sleep(1.5)
 
