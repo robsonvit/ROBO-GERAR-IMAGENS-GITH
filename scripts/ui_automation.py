@@ -122,12 +122,36 @@ def main():
                 headless=is_headless,
                 args=browser_args
             )
-            context = browser.new_context(
-                storage_state=state_file,
-                accept_downloads=True,
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                viewport={'width': 1920, 'height': 1080}
-            )
+            try:
+                with open(state_file, 'r', encoding='utf-8') as f:
+                    raw_data = json.load(f)
+            except Exception as e:
+                raw_data = None
+                print(f"Erro ao ler state.json: {e}")
+
+            if isinstance(raw_data, list):
+                print(f"Detectado formato Cookie-Editor com {len(raw_data)} cookies.")
+                context = browser.new_context(
+                    accept_downloads=True,
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    viewport={'width': 1920, 'height': 1080}
+                )
+                cleaned_cookies = []
+                for c in raw_data:
+                    c_clean = dict(c)
+                    for k in ['hostOnly', 'session', 'storeId', 'id']:
+                        c_clean.pop(k, None)
+                    if 'sameSite' in c_clean and c_clean['sameSite'] not in ['Strict', 'Lax', 'None']:
+                        c_clean.pop('sameSite', None)
+                    cleaned_cookies.append(c_clean)
+                context.add_cookies(cleaned_cookies)
+            else:
+                context = browser.new_context(
+                    storage_state=state_file,
+                    accept_downloads=True,
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    viewport={'width': 1920, 'height': 1080}
+                )
         else:
             print("💻 Iniciando localmente no PC com pasta de sessão...")
             context = p.chromium.launch_persistent_context(

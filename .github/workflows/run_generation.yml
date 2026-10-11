@@ -32,8 +32,10 @@ jobs:
       run: |
         if [ ! -z "${{ secrets.GOOGLE_SESSION_STATE }}" ]; then
           echo "${{ secrets.GOOGLE_SESSION_STATE }}" | base64 -d > state.json
+        elif [ ! -z "${{ secrets.AUTH_SESSION_JSON }}" ]; then
+          echo "${{ secrets.AUTH_SESSION_JSON }}" > state.json
         else
-          echo "GOOGLE_SESSION_STATE secret is missing!"
+          echo "GOOGLE_SESSION_STATE or AUTH_SESSION_JSON secret is missing!"
         fi
 
     - name: Set up Python
