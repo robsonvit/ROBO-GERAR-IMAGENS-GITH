@@ -24,11 +24,17 @@ def send_to_telegram(filepath, caption):
     url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
     try:
         with open(filepath, 'rb') as f:
-            response = requests.post(url, files={'photo': f}, data={'chat_id': chat_id, 'caption': caption, 'parse_mode': 'Markdown'})
+            response = requests.post(url, files={'photo': f}, data={'chat_id': chat_id, 'caption': caption, 'parse_mode': 'Markdown'}, timeout=60)
             if response.status_code == 200:
                 print("✅ Foto enviada com sucesso ao Telegram!")
             else:
-                print(f"Aviso ao enviar ao Telegram: {response.text}")
+                # Fallback sem parse_mode se falhar formatação
+                f.seek(0)
+                r2 = requests.post(url, files={'photo': f}, data={'chat_id': chat_id, 'caption': caption}, timeout=60)
+                if r2.status_code == 200:
+                    print("✅ Foto enviada com sucesso ao Telegram (modo texto simples)!")
+                else:
+                    print(f"Aviso ao enviar ao Telegram: {r2.text}")
     except Exception as e:
         print(f"Erro ao enviar para o Telegram: {e}")
 
@@ -39,9 +45,13 @@ def send_status_message(text):
         return None
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     try:
-        response = requests.post(url, data={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'})
+        response = requests.post(url, data={'chat_id': chat_id, 'text': text, 'parse_mode': 'Markdown'}, timeout=10)
         if response.status_code == 200:
             return response.json().get('result', {}).get('message_id')
+        else:
+            r2 = requests.post(url, data={'chat_id': chat_id, 'text': text}, timeout=10)
+            if r2.status_code == 200:
+                return r2.json().get('result', {}).get('message_id')
     except Exception as e:
         print(f"Erro ao enviar mensagem de status: {e}")
     return None
@@ -53,9 +63,12 @@ def edit_status_message(message_id, text):
         return
     url = f"https://api.telegram.org/bot{bot_token}/editMessageText"
     try:
-        requests.post(url, data={'chat_id': chat_id, 'message_id': message_id, 'text': text, 'parse_mode': 'Markdown'})
-    except Exception:
-        pass
+        r = requests.post(url, data={'chat_id': chat_id, 'message_id': message_id, 'text': text, 'parse_mode': 'Markdown'}, timeout=10)
+        if r.status_code != 200:
+            # Fallback sem parse_mode se markdown falhar
+            requests.post(url, data={'chat_id': chat_id, 'message_id': message_id, 'text': text}, timeout=10)
+    except Exception as e:
+        print(f"Erro ao editar mensagem de status: {e}")
 
 def make_progress_bar(percent, elapsed, estimated_total=120):
     bar_length = 10

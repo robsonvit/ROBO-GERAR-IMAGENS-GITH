@@ -27,26 +27,49 @@ function doPost(e) {
       if (text.startsWith('/start')) {
         var msg = "👋 *Olá! Sou seu Bot Gerador de Imagens no Google Flow (PRO).*\n\n" +
                   "Ele roda 100% na nuvem sem precisar do seu PC ligado!\n\n" +
-                  "📌 *Como usar:*\n" +
-                  "Basta enviar qualquer texto ou prompt de imagem diretamente aqui, exemplo:\n" +
-                  "_\"Um carro futurista esportivo neon 4k\"_\n\n" +
+                  "📌 *Para gerar uma imagem, use sempre o comando:*\n" +
+                  "• `/flow seu prompt aqui`\n" +
+                  "• ou `/gerar seu prompt aqui`\n\n" +
+                  "_Exemplo:_ `/flow Um leao dourado com armadura futurista luzes neon 4k`\n\n" +
                   "✨ As imagens são geradas na sua conta Google Flow e baixadas em **2K**!";
         enviarMensagemTelegram(chatId, msg);
         return ContentService.createTextOutput("OK");
       }
 
-      // Trata /flow, /gerar ou qualquer prompt digitado diretamente
-      var prompt = text;
-      if (prompt.startsWith('/flow ')) {
-        prompt = prompt.replace('/flow ', '').trim();
-      } else if (prompt.startsWith('/gerar ')) {
-        prompt = prompt.replace('/gerar ', '').trim();
+      var prompt = "";
+      var isComando = false;
+
+      if (text.startsWith('/flow ') || text === '/flow') {
+        isComando = true;
+        prompt = text.replace('/flow', '').trim();
+      } else if (text.startsWith('/gerar ') || text === '/gerar') {
+        isComando = true;
+        prompt = text.replace('/gerar', '').trim();
       }
 
-      if (prompt) {
-        var msgId = enviarMensagemTelegram(chatId, "🎨 *Prompt recebido!*\nIniciando geração no Google Flow 2K na nuvem...\n`[░░░░░░░░░░] 0%`");
-        enviarParaGitHub(prompt, chatId, WORKFLOW_GERAR, msgId);
+      if (!isComando) {
+        // Mensagem enviada sem comando — avisa para evitar disparos acidentais
+        var aviso = "⚠️ *Comando não reconhecido!*\n\n" +
+                    "Para gerar uma imagem e evitar disparos acidentais, use o comando:\n" +
+                    "👉 `/flow seu prompt aqui`\n" +
+                    "ou `/gerar seu prompt aqui`\n\n" +
+                    "_Exemplo:_ `/flow Uma linda praia paradisiaca por do sol 4k`";
+        enviarMensagemTelegram(chatId, aviso);
+        return ContentService.createTextOutput("OK");
       }
+
+      if (!prompt) {
+        enviarMensagemTelegram(chatId, "⚠️ Por favor, digite o prompt após o comando.\n_Exemplo:_ `/flow Um guerreiro samurai neon 4k`");
+        return ContentService.createTextOutput("OK");
+      }
+
+      // Envia feedback inicial e captura o message_id para edição em tempo real pelo GitHub Actions
+      var feedbackInicial = "🎨 *Prompt recebido!*\n" +
+                            "📝 _\"" + prompt + "\"_\n\n" +
+                            "`[░░░░░░░░░░] 0%`\n" +
+                            "⏳ _Acionando Google Flow na nuvem..._";
+      var msgId = enviarMensagemTelegram(chatId, feedbackInicial);
+      enviarParaGitHub(prompt, chatId, WORKFLOW_GERAR, msgId);
     }
   } catch (error) {
     console.error(error);
