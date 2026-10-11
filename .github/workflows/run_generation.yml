@@ -29,14 +29,18 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Configure Google Session State
+      env:
+        AUTH_JSON: ${{ secrets.AUTH_SESSION_JSON }}
+        GOOGLE_STATE: ${{ secrets.GOOGLE_SESSION_STATE }}
       run: |
-        if [ ! -z "${{ secrets.GOOGLE_SESSION_STATE }}" ]; then
-          echo "${{ secrets.GOOGLE_SESSION_STATE }}" | base64 -d > state.json
-        elif [ ! -z "${{ secrets.AUTH_SESSION_JSON }}" ]; then
-          echo "${{ secrets.AUTH_SESSION_JSON }}" > state.json
+        if [ -n "$AUTH_JSON" ]; then
+          echo "$AUTH_JSON" > state.json
+        elif [ -n "$GOOGLE_STATE" ]; then
+          echo "$GOOGLE_STATE" | base64 -d > state.json
         else
-          echo "GOOGLE_SESSION_STATE or AUTH_SESSION_JSON secret is missing!"
+          echo "Aviso: Nenhum segredo de sessao configurado!"
         fi
+        echo "state.json configurado com $(wc -c < state.json) bytes"
 
     - name: Set up Python
       uses: actions/setup-python@v5

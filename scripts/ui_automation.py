@@ -212,19 +212,25 @@ def main():
                 editor_locator = page.locator('div[contenteditable="true"].ProseMirror').first
                 if not editor_locator.is_visible():
                     print("Editor não está visível. Abrindo/criando projeto...")
-                    if '/about' in page.url:
-                        page.goto('https://flow.google.com/', wait_until='domcontentloaded')
-                        time.sleep(4)
+                    # Se estiver na página de apresentação (/about), clica em "Create with Google Flow"
+                    create_btn = page.locator('text="Create with Google Flow", button:has-text("Create with Google Flow"), a:has-text("Create with Google Flow")').first
+                    if create_btn.is_visible(timeout=3000):
+                        print("Clicando no botão 'Create with Google Flow' na página de boas-vindas...")
+                        create_btn.click()
+                        time.sleep(5)
 
                     btn_novo = page.locator("button.new-project-button").first
-                    if btn_novo.is_visible(timeout=5000):
+                    card = page.locator('a.project-thumbnail-container, a[href*="/project/"]').first
+                    if btn_novo.is_visible(timeout=6000):
                         print("Clicando em Novo Projeto (+)...")
                         btn_novo.click()
                         time.sleep(4)
-                    else:
+                    elif card.is_visible(timeout=6000):
                         print("Abrindo primeiro projeto existente...")
-                        page.locator('a.project-thumbnail-container, a[href*="/project/"]').first.click()
+                        card.click()
                         time.sleep(4)
+                    else:
+                        print("Aviso: Nem botão novo nem cards de projeto visíveis diretamente. Aguardando editor...")
 
                 try:
                     editor_locator.wait_for(state='visible', timeout=25000)
