@@ -175,10 +175,21 @@ def main():
                     c_clean = dict(c)
                     for k in ['hostOnly', 'session', 'storeId', 'id']:
                         c_clean.pop(k, None)
-                    if 'sameSite' in c_clean and c_clean['sameSite'] not in ['Strict', 'Lax', 'None']:
+                    # No Cookie-Editor, SameSite=None vem como 'no_restriction'
+                    if c_clean.get('sameSite') == 'no_restriction':
+                        c_clean['sameSite'] = 'None'
+                    elif 'sameSite' in c_clean and c_clean['sameSite'] not in ['Strict', 'Lax', 'None']:
                         c_clean.pop('sameSite', None)
                     cleaned_cookies.append(c_clean)
                 context.add_cookies(cleaned_cookies)
+            elif isinstance(raw_data, dict) and 'cookies' in raw_data:
+                print(f"Detectado formato storage_state Playwright com {len(raw_data.get('cookies', []))} cookies e {len(raw_data.get('origins', []))} origens de localStorage.")
+                context = browser.new_context(
+                    storage_state=state_file,
+                    accept_downloads=True,
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    viewport={'width': 1920, 'height': 1080}
+                )
             else:
                 context = browser.new_context(
                     storage_state=state_file,
@@ -490,12 +501,12 @@ def main():
         edit_status_message(status_msg_id, msg_fim)
         if use_state and sucessos > 0:
             try:
-                new_cookies = context.cookies()
-                if new_cookies:
-                    print(f"🔄 Salvando {len(new_cookies)} cookies renovados da sessão...")
-                    update_github_secret_cookies(new_cookies)
+                new_state = context.storage_state()
+                if new_state and new_state.get('cookies'):
+                    print(f"🔄 Salvando sessão renovada ({len(new_state.get('cookies', []))} cookies e {len(new_state.get('origins', []))} origens)...")
+                    update_github_secret_cookies(new_state)
             except Exception as e:
-                print(f"Aviso ao renovar cookies: {e}")
+                print(f"Aviso ao renovar sessão: {e}")
 
         context.close()
         if use_state:
