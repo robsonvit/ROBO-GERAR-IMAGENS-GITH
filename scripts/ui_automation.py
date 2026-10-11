@@ -201,7 +201,13 @@ def main():
 
         print("Navegando para o Google Flow (https://flow.google.com/)...")
         page.goto('https://flow.google.com/', wait_until='domcontentloaded', timeout=60000)
-        time.sleep(4)
+        try:
+            page.wait_for_selector(
+                'div[contenteditable="true"].ProseMirror, button.new-project-button, a.project-thumbnail-container, a[href*="/project/"]',
+                timeout=6000
+            )
+        except Exception:
+            pass
 
         current_url = page.url
         if 'accounts.google.com' in current_url or 'signin' in current_url.lower():
@@ -242,35 +248,34 @@ def main():
                 if not editor_locator.is_visible():
                     print("Editor não está visível. Abrindo/criando projeto...")
                     # Se estiver na página de apresentação (/about), clica em "Create with Google Flow"
-                    create_btn = page.get_by_text(re.compile(r"Create with Google Flow|Criar com o Google Flow", re.I)).first
-                    try:
-                        if create_btn.is_visible(timeout=3000):
-                            print("Clicando no botão 'Create with Google Flow' na página de boas-vindas...")
-                            create_btn.click()
-                            time.sleep(5)
-                            if 'accounts.google.com' in page.url or 'signin' in page.url.lower():
-                                send_status_message(
-                                    "⚠️ *Sessão Expirada!*\n\n"
-                                    "A sessão do Google Flow expirou e caiu no login.\n"
-                                    "Por favor, atualize os cookies via Cookie-Editor ou rode `python import_cookies.py`."
-                                )
-                                context.close()
-                                return
-                    except Exception as e:
-                        print(f"Aviso ao tentar botão de boas-vindas: {e}")
+                    if '/about' in page.url or page.get_by_text(re.compile(r"Create with Google Flow|Criar com o Google Flow", re.I)).count() > 0:
+                        create_btn = page.get_by_text(re.compile(r"Create with Google Flow|Criar com o Google Flow", re.I)).first
+                        try:
+                            if create_btn.is_visible(timeout=1000):
+                                print("Clicando no botão 'Create with Google Flow' na página de boas-vindas...")
+                                create_btn.click()
+                                time.sleep(1.5)
+                                if 'accounts.google.com' in page.url or 'signin' in page.url.lower():
+                                    send_status_message(
+                                        "⚠️ *Sessão Expirada!*\n\n"
+                                        "A sessão do Google Flow expirou e caiu no login.\n"
+                                        "Por favor, atualize os cookies via Cookie-Editor ou rode `python import_cookies.py`."
+                                    )
+                                    context.close()
+                                    return
+                        except Exception as e:
+                            print(f"Aviso ao tentar botão de boas-vindas: {e}")
 
                     btn_novo = page.locator("button.new-project-button").or_(
                         page.get_by_role("button", name=re.compile(r"Novo projeto|New project", re.I))
                     ).first
                     card = page.locator('a.project-thumbnail-container, a[href*="/project/"]').first
-                    if btn_novo.is_visible(timeout=6000):
+                    if btn_novo.is_visible(timeout=3000):
                         print("Clicando em Novo Projeto (+)...")
                         btn_novo.click()
-                        time.sleep(4)
-                    elif card.is_visible(timeout=6000):
+                    elif card.is_visible(timeout=3000):
                         print("Abrindo primeiro projeto existente...")
                         card.click()
-                        time.sleep(4)
                     else:
                         print("Aviso: Nem botão novo nem cards de projeto visíveis diretamente. Aguardando editor...")
 
@@ -280,23 +285,25 @@ def main():
                 except Exception as e:
                     print(f"Aviso ao aguardar editor: {e}")
 
-                # 2. Fechar eventuais popups / avisos
+                # 2. Fechar eventuais popups / avisos de forma rápida
                 for _ in range(3):
                     try:
                         btn_close = page.locator('button[aria-label="Close"], button[aria-label="Dismiss"], button:has-text("Dismiss"), button:has-text("Entendi")').first
-                        if btn_close.is_visible(timeout=1500):
+                        if btn_close.is_visible(timeout=300):
                             btn_close.click()
-                            time.sleep(0.5)
+                            time.sleep(0.3)
+                        else:
+                            break
                     except Exception:
                         break
 
                 # 3. Desativar modo "Agente" se estiver ligado (garante modo de geração de imagem)
                 try:
                     agent_btn = page.locator('button[aria-pressed="true"]').filter(has_text=re.compile(r"agent|agente", re.IGNORECASE)).first
-                    if agent_btn.is_visible(timeout=2000):
+                    if agent_btn.is_visible(timeout=300):
                         print("Modo Agente ativado detectado. Desativando...")
                         agent_btn.click()
-                        time.sleep(1.0)
+                        time.sleep(0.5)
                 except Exception:
                     pass
 
@@ -313,40 +320,45 @@ def main():
 
                 update_status(25, "Digitando prompt...")
                 editor_locator.click()
-                time.sleep(0.3)
-                page.keyboard.press("Control+a")
-                time.sleep(0.1)
-                page.keyboard.press("Backspace")
                 time.sleep(0.2)
+                page.keyboard.press("Control+a")
+                time.sleep(0.05)
+                page.keyboard.press("Backspace")
+                time.sleep(0.1)
 
-                # Digita o prompt suavemente
-                editor_locator.press_sequentially(prompt, delay=35)
-                time.sleep(1.0)
+                # Digita o prompt rapidamente mantendo compatibilidade com ProseMirror
+                editor_locator.press_sequentially(prompt, delay=5)
+                time.sleep(0.3)
 
                 update_status(35, "Enviando solicitação...")
                 page.keyboard.press("Enter")
                 print("✅ Prompt enviado via tecla Enter!")
 
-                # Fechar eventual toast de validação
-                time.sleep(1.0)
+                # Fechar eventual toast de validação rapidamente
                 try:
                     toast_dismiss = page.locator('button:has-text("Dismiss"), button[aria-label="Dismiss"]').first
-                    if toast_dismiss.is_visible(timeout=1500):
+                    if toast_dismiss.is_visible(timeout=400):
                         toast_dismiss.click()
                 except Exception:
                     pass
 
                 update_status(45, "Aguardando geração da imagem no Flow...")
 
-                # 4. Aguardar nova imagem ser renderizada no grid
+                # 4. Aguardar nova imagem ser renderizada no grid (polling dinâmico a cada 1s)
                 new_img_src = None
                 start_wait = time.time()
+                last_telegram_time = start_wait
                 max_wait_seconds = 180
 
                 while time.time() - start_wait < max_wait_seconds:
-                    elapsed = int(time.time() - start_time_prompt)
-                    pct = min(75, 45 + int((time.time() - start_wait) / max_wait_seconds * 30))
-                    update_status(pct, f"Processando no Flow ({int(time.time() - start_wait)}s)...")
+                    now = time.time()
+                    elapsed = int(now - start_time_prompt)
+                    pct = min(75, 45 + int((now - start_wait) / max_wait_seconds * 30))
+
+                    # Atualiza status do Telegram com throttle de 5s para não bloquear o loop
+                    if now - last_telegram_time >= 5.0:
+                        update_status(pct, f"Processando no Flow ({int(now - start_wait)}s)...")
+                        last_telegram_time = now
 
                     # Verificar se apareceu mensagem de erro
                     has_failed = page.evaluate('''() => {
@@ -377,12 +389,12 @@ def main():
                         print(f"✅ Imagem gerada encontrada: {new_img_src[:65]}...")
                         break
 
-                    time.sleep(3.0)
+                    time.sleep(1.0)
 
                 if not new_img_src:
                     raise Exception("Timeout 180s: A nova imagem não foi detectada no Flow.")
 
-                time.sleep(3.0)
+                time.sleep(0.5)
                 update_status(75, "Localizando imagem e preparando download 2K...")
 
                 # 5. Localizar elemento da imagem gerada e ativar a hotbar via hover
@@ -392,7 +404,7 @@ def main():
 
                 print("Fazendo hover sobre a imagem gerada para ativar o menu...")
                 target_img.hover()
-                time.sleep(1.0)
+                time.sleep(0.3)
 
                 # 6. Localizar o botão de 3 pontos do card da imagem (tem atributo flowhotbarbutton e fica no card com y > 50)
                 dots_btn = page.locator('button[flowhotbarbutton][aria-label*="opções" i], button[flowhotbarbutton]:has-text("more_vert")').first
@@ -406,8 +418,11 @@ def main():
                             break
 
                 print("Clicando no botão ⋮ do card da imagem...")
+                try:
+                    dots_btn.wait_for(state="visible", timeout=3000)
+                except Exception:
+                    pass
                 dots_btn.click(force=True)
-                time.sleep(1.5)
 
                 # 7. Localizar opção "Fazer o download" no menu de contexto
                 update_status(85, "Abrindo menu de download...")
@@ -418,19 +433,21 @@ def main():
                     '[role="menuitem"]:has-text("download")'
                 ).first
 
-                if not baixar_menu.is_visible(timeout=5000):
-                    raise Exception("Item de menu 'Fazer o download' não encontrado.")
+                baixar_menu.wait_for(state="visible", timeout=5000)
 
                 print("Hover sobre 'Fazer o download' para abrir submenu de resolução...")
                 baixar_menu.hover()
-                time.sleep(1.5)
+                time.sleep(0.5)
 
                 # 8. Localizar a opção "2K" no submenu
                 opt_2k = page.locator('button:has-text("2K"), [role="menuitem"]:has-text("2K")').first
                 qualidade_str = "2K"
-                target_download = opt_2k if opt_2k.is_visible(timeout=3000) else baixar_menu
-                if not opt_2k.is_visible():
+                try:
+                    opt_2k.wait_for(state="visible", timeout=2000)
+                    target_download = opt_2k
+                except Exception:
                     qualidade_str = "1K"
+                    target_download = baixar_menu
                     print("Aviso: Opção 2K não visível no submenu, baixando em 1K...")
 
                 update_status(90, f"Baixando imagem em {qualidade_str}...")
@@ -439,7 +456,6 @@ def main():
                 # 9. Interceptar e salvar o download nativo do Playwright
                 with page.expect_download(timeout=120000) as download_info:
                     target_download.click()
-                    time.sleep(1.0)
 
                 download = download_info.value
                 file_path = os.path.join(output_dir, f"flow_{idx + 1}_{int(time.time())}.png")
@@ -461,7 +477,7 @@ def main():
                 falhas += 1
 
             if idx < len(prompts) - 1:
-                time.sleep(random.uniform(10, 15))
+                time.sleep(random.uniform(3, 5))
 
         msg_fim = (
             f"✅ *Processo Concluído no Google Flow!*\n\n"
