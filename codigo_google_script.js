@@ -1,5 +1,5 @@
-// Configurações (Preencha com seus dados)
-var TELEGRAM_TOKEN = '8884730667:AAFksICsljBm17MkrANpCrBnGhuPbIQ2-Xc';
+// Configurações (Preencha com seus dados ou utilize o arquivo local codigo_google_script_PRIVADO.js)
+var TELEGRAM_TOKEN = 'SEU_TELEGRAM_TOKEN_AQUI'; // Insira o token do seu bot do Telegram
 var GITHUB_TOKEN = 'SEU_GITHUB_TOKEN_AQUI'; // Insira seu token do GitHub (escopo: repo + workflow)
 var GITHUB_REPO = 'robsonvit/ROBO-GERAR-IMAGENS-GITH'; // Repositório atual
 var WORKFLOW_GERAR = 'run_generation.yml'; // Google Flow 2K
